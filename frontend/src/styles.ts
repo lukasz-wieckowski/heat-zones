@@ -32,6 +32,7 @@ export const shared = css`
     --hz-group-padding: var(--heat-zones-group-padding, var(--ha-space-1));
     --hz-sheet-padding: var(--heat-zones-sheet-padding, var(--ha-space-3));
     --hz-bar-height: var(--heat-zones-bar-height, var(--ha-space-6));
+    --hz-ribbon-height: var(--heat-zones-ribbon-height, var(--ha-space-3));
 
     --hz-border-width: var(--heat-zones-border-width, var(--ha-border-width-sm));
     --hz-focus-width: var(--heat-zones-focus-width, var(--ha-border-width-md));
@@ -41,6 +42,7 @@ export const shared = css`
     --hz-group-radius: var(--heat-zones-group-border-radius, calc(var(--hz-control-height) / 2 + var(--hz-group-padding)));
     --hz-sheet-radius: var(--heat-zones-sheet-border-radius, calc(var(--hz-control-height) / 2 + var(--hz-sheet-padding)));
     --hz-bar-radius: var(--heat-zones-bar-border-radius, var(--ha-border-radius-md));
+    --hz-ribbon-radius: var(--heat-zones-ribbon-border-radius, var(--ha-border-radius-pill));
 
     --hz-text: var(--heat-zones-text-color, var(--primary-text-color));
     --hz-muted: var(--heat-zones-secondary-text-color, var(--secondary-text-color));
@@ -52,6 +54,10 @@ export const shared = css`
     --hz-line: var(--heat-zones-divider-color, var(--divider-color));
     --hz-input-background: var(--heat-zones-input-background-color, var(--input-fill-color));
     --hz-track: var(--heat-zones-track-color, var(--secondary-background-color));
+    --hz-inset: var(--heat-zones-inset-color, var(--secondary-background-color));
+    --hz-past: var(--heat-zones-past-color, color-mix(in srgb, var(--card-background-color) 55%, transparent));
+    --hz-switch-off: var(--heat-zones-switch-off-color, var(--disabled-color));
+    --hz-switch-knob: var(--heat-zones-switch-knob-color, var(--text-primary-color));
 
     --hz-glass-color: var(--heat-zones-glass-color, var(--card-background-color));
     --hz-glass-opacity: var(--heat-zones-glass-opacity, 70%);
@@ -60,6 +66,9 @@ export const shared = css`
     --hz-glass-highlight: var(--heat-zones-glass-highlight-color, color-mix(in srgb, var(--heat-zones-glass-border-color, var(--divider-color)), var(--ha-color-white) 40%));
     --hz-glass-shadow: var(--heat-zones-glass-shadow, var(--ha-box-shadow-s));
     --hz-sheet-shadow: var(--heat-zones-sheet-shadow, var(--ha-box-shadow-m));
+    --hz-sheet-opacity: var(--heat-zones-sheet-opacity, 92%);
+    --hz-scrim-filter: var(--heat-zones-scrim-filter, var(--ha-dialog-scrim-backdrop-filter));
+    --hz-sheet-duration: var(--heat-zones-sheet-duration, var(--ha-animation-duration-normal));
     --hz-duration: var(--heat-zones-transition-duration, var(--ha-animation-duration-fast));
     --hz-press-scale: var(--heat-zones-press-scale, 0.97);
 
@@ -78,7 +87,9 @@ export const shared = css`
     /* the glass material of the controls, made of the tokens above */
     --hz-glass-fill: color-mix(in srgb, var(--hz-glass-color) var(--hz-glass-opacity), transparent);
     --hz-glass-filter: blur(var(--hz-glass-blur));
+    --hz-sheet-fill: color-mix(in srgb, var(--hz-glass-color) var(--hz-sheet-opacity), transparent);
     --hz-press: scale(var(--hz-press-scale));
+    --hz-switch-travel: calc(var(--ha-space-12) - var(--ha-space-6) - var(--ha-border-width-md) - var(--ha-border-width-md));
 
     display: block;
     color: var(--hz-text);
@@ -91,12 +102,14 @@ export const shared = css`
   @media (prefers-reduced-transparency: reduce) {
     :host {
       --hz-glass-fill: var(--hz-glass-color);
+      --hz-sheet-fill: var(--hz-glass-color);
       --hz-glass-filter: none;
     }
   }
   @media (prefers-contrast: more) {
     :host {
       --hz-glass-fill: var(--hz-glass-color);
+      --hz-sheet-fill: var(--hz-glass-color);
       --hz-glass-filter: none;
       --hz-glass-edge: var(--hz-text);
       --hz-glass-highlight: var(--hz-text);
@@ -185,6 +198,53 @@ export const shared = css`
     border-radius: var(--hz-icon-button-radius);
     min-width: var(--hz-control-height);
     padding: 0;
+  }
+  /* A text button: opens a sheet, closes it, or undoes something small. */
+  button.link {
+    color: var(--hz-accent);
+    font-weight: var(--hz-title-font-weight);
+    padding: var(--hz-input-padding);
+  }
+  /* Inside a sheet: an inset panel instead of glass on glass. */
+  .inset {
+    background: var(--hz-inset);
+    border-radius: var(--hz-group-radius);
+    padding: var(--hz-sheet-padding);
+  }
+  button.switch,
+  button.switch:hover {
+    position: relative;
+    flex: none;
+    width: var(--ha-space-12);
+    height: var(--ha-space-7);
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--ha-border-radius-pill);
+    background: var(--hz-switch-off);
+  }
+  button.switch::after {
+    content: "";
+    position: absolute;
+    top: var(--ha-border-width-md);
+    left: var(--ha-border-width-md);
+    width: var(--ha-space-6);
+    height: var(--ha-space-6);
+    border-radius: var(--ha-border-radius-pill);
+    background: var(--hz-switch-knob);
+    box-shadow: var(--hz-glass-shadow);
+    transition: transform var(--hz-duration);
+  }
+  button.switch[aria-checked="true"],
+  button.switch[aria-checked="true"]:hover {
+    background: var(--hz-accent);
+  }
+  button.switch[aria-checked="true"]::after {
+    transform: translateX(var(--hz-switch-travel));
+  }
+  button:focus-visible {
+    outline: var(--hz-focus-width) solid var(--hz-accent);
+    outline-offset: var(--hz-border-width);
   }
   button:disabled {
     color: var(--hz-disabled);

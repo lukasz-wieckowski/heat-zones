@@ -14,6 +14,10 @@
   containers, selected option tinted, main action filled, concentric corners), editing in raised glass sheets,
   press feedback; solid glass with reduced transparency or more contrast, no animation with reduced motion. All of
   it on `--heat-zones-*` variables with Home Assistant defaults.
+- The card shows only the everyday things at once: the zone now, a strip of today (schedule and overrides, the past
+  dimmed, a mark for now) and the presets. The week with its overrides and the settings (heating on or off, where
+  to measure, keeping a manual change) open in sheets — from the bottom on a phone, in the middle on wider screens.
+  *Resume schedule* appears next to the reason while a manual change is held.
 
 First public version, built from the private *Strefy ciepła* 1.10 (code only, no stored state).
 

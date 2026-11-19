@@ -257,3 +257,16 @@ async def test_a_thermostat_belongs_to_one_zone(hass: HomeAssistant, home: Home)
     await settle(hass)
     assert [z.name for z in entry.runtime_data.zones.values()] == ["Living room"]
     assert hass.states.get("climate.hall") is None
+
+
+def test_climate_uses_the_temperature_api_of_its_home_assistant() -> None:
+    """Native temperatures from Home Assistant 2026.11 (the old names stop working in 2027.11), old names before."""
+    from homeassistant.components.climate import ClimateEntity
+
+    from custom_components.heat_zones.climate import NATIVE, ZoneClimate
+
+    assert hasattr(ClimateEntity, "native_current_temperature") == NATIVE
+    native = {"_attr_native_temperature_unit", "native_current_temperature", "native_target_temperature"}
+    old = {"_attr_temperature_unit", "current_temperature", "target_temperature"}
+    defined = set(vars(ZoneClimate))
+    assert (native <= defined, old & defined) == ((True, set()) if NATIVE else (False, old))

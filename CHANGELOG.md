@@ -2,6 +2,9 @@
 
 ## 1.0.0 — unreleased
 
+- The zone thermostat uses Home Assistant's native temperature API from 2026.11 (no deprecation warnings; the old
+  names stop working in 2027.11).
+
 First public version, built from the private *Strefy ciepła* 1.10 (code only, no stored state).
 
 - Zones from areas as config subentries, with a setup wizard that can create a zone for every area with a

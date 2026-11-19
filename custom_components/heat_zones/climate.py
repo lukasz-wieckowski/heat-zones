@@ -22,6 +22,11 @@ from .const import DOMAIN
 from .engine import HeatZones, Zone
 from .entity import ZoneEntity
 
+# Home Assistant 2026.11 moved climate temperatures to a native API (`native_temperature_unit`,
+# `native_current_temperature`, `native_target_temperature`); the old names stop working in 2027.11. Older versions
+# (the test harness) only know the old names, so the entity defines the set its Home Assistant has.
+NATIVE = hasattr(ClimateEntity, "native_current_temperature")
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: HeatZonesConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
@@ -34,7 +39,6 @@ async def async_setup_entry(
 class ZoneClimate(ZoneEntity, ClimateEntity):
     _attr_name = None
     _attr_translation_key = "zone"
-    _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_precision = PRECISION_TENTHS
     _attr_target_temperature_step = 0.5
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT]  # noqa: RUF012 — Home Assistant's own attribute style
@@ -87,12 +91,32 @@ class ZoneClimate(ZoneEntity, ClimateEntity):
             return HVACAction.IDLE
         return HVACAction.HEATING if z.action == "heating" else HVACAction.IDLE
 
-    @property
-    def current_temperature(self) -> float | None:
+    if NATIVE:
+        _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
+
+        @property
+        def native_current_temperature(self) -> float | None:
+            return self._current()
+
+        @property
+        def native_target_temperature(self) -> float | None:
+            return self._target()
+
+    else:  # Home Assistant before 2026.11
+        _attr_temperature_unit = UnitOfTemperature.CELSIUS
+
+        @property
+        def current_temperature(self) -> float | None:
+            return self._current()
+
+        @property
+        def target_temperature(self) -> float | None:
+            return self._target()
+
+    def _current(self) -> float | None:
         return self.zone.current
 
-    @property
-    def target_temperature(self) -> float | None:
+    def _target(self) -> float | None:
         return self.zone.setting.temperature if self.zone.setting else None
 
     @property

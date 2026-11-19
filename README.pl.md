@@ -156,11 +156,16 @@ w innych kartach.
 Heat Zones publikuje, co zrobi, i przyjmuje zmiany od systemów takich jak HomeAI. Ten sam kontrakt może spełnić
 każda integracja termostatu. Szczegóły (pola, odpowiedzi, przykład) są w [README po angielsku](README.md#contract-for-other-systems):
 
-- atrybuty `homeai_schedule` (`{"version": 1, "domain": "heat_zones"}`), `homeai_plan` (`{start, title, end?}`,
+- atrybuty `homeai_schedule` (`{"version": 1, "domain": "heat_zones", "areas": [...]}` — `areas` to obszary, które
+  strefa grzeje), `homeai_plan` (`{start, title, end?}`,
   36 h, do 50) i `homeai_signals` (`{id, title, severity 0–4, category, description?, need?, group?}`);
 - usługi `heat_zones.add_override` (odpowiedź `{override_id}`), `remove_override`, `get_schedule` (odpowiedź
   `{entity_id: {enabled, weekly, overrides}}`), `set_schedule`, `estimate` (odpowiedź
   `{entity_id: {minutes | null, confidence}}`) i `reset_learning`.
+
+Nadpisanie wysłane ponownie bez zmian (ten sam początek, koniec i wartość) zachowuje swój wiek, więc nie cofa
+ręcznej zmiany zrobionej w międzyczasie. Stany zapisane przez usługę Stref niosą kontekst wywołującego, a własne
+zmiany integracji (harmonogram, nagrzewanie, koniec nadpisania) — świeży kontekst bez użytkownika.
 
 Poza kontraktem: `heat_zones.hold` (`temperature` albo `preset_mode`, `until` albo `permanent`) i
 `heat_zones.resume`.

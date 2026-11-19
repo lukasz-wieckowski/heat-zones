@@ -48,7 +48,11 @@ async def test_entities_and_room_temperature(hass: HomeAssistant, home: Home) ->
     assert home.values("select_option", "select.living_trv_temperature_sensor_select", "option") == [
         "remote_temperature"
     ]
-    assert st.attributes["homeai_schedule"] == {"version": 1, "domain": "heat_zones"}
+    assert st.attributes["homeai_schedule"] == {
+        "version": 1,
+        "domain": "heat_zones",
+        "areas": ["living_room", "kitchen", "hall"],  # the rooms the zone heats
+    }
     assert [t["mode"] for t in st.attributes["thermostats"]] == ["room_sensor"]
     options = hass.states.get("select.living_area_measure_at").attributes["options"]
     assert options == ["Living room", "Kitchen", "Hall", "average", "coldest"]

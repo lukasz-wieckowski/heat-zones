@@ -18,8 +18,10 @@ First public version, built from the private *Strefy ciepła* 1.10 (code only, n
 - Entities: climate with standard and own presets, schedule switch, next change, measuring point, problem, window
   pause, valve limit and diagnostic sensors.
 - Lovelace card with the weekly schedule editor and overrides, served by the integration.
-- Contract for other systems such as HomeAI: `homeai_schedule`, `homeai_plan` and `homeai_signals` attributes;
-  `add_override`, `remove_override`, `get_schedule`, `set_schedule`, `estimate` and `reset_learning` services.
+- Contract for other systems such as HomeAI: `homeai_schedule` (with the zone's `areas`), `homeai_plan` and
+  `homeai_signals` attributes; `add_override` (upsert by id; an unchanged re-send keeps its age),
+  `remove_override`, `get_schedule`, `set_schedule`, `estimate` and `reset_learning` services. States carry the
+  caller's context; the integration's own changes get a fresh one.
 - Translations: English and Polish.
 
 Not carried over from *Strefy ciepła* 1.10: the Auto mode and its planner, household rhythm, presence and

@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from homeassistant.core import callback
+from homeassistant.core import Context, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity import Entity
 
 from .const import DOMAIN, NAME, VERSION
-from .engine import HeatZones, Zone
+from .engine import CALLER, HeatZones, Zone
 
 
 class ZoneEntity(Entity):
@@ -36,4 +36,9 @@ class ZoneEntity(Entity):
 
     @callback
     def _changed(self) -> None:
+        caller = CALLER.get()
+        if isinstance(caller, Context):
+            self.async_set_context(caller)  # a Heat Zones service: the caller's context
+        elif caller is False:
+            self.async_set_context(Context())  # the integration's own change (schedule, preheat, devices)
         self.async_write_ha_state()

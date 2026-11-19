@@ -158,7 +158,9 @@ can implement the same contract.
 
 **Attributes of `climate.<zone>`:**
 
-- `homeai_schedule` = `{"version": 1, "domain": "heat_zones"}` — this thermostat supports the contract.
+- `homeai_schedule` = `{"version": 1, "domain": "heat_zones", "areas": [...]}` — this thermostat supports the
+  contract; `areas` (optional for other implementations) are the ids of the areas the zone heats. The zone's own
+  device has no area, so systems should read the rooms from here.
 - `homeai_plan` = list of `{start, title, end?}` (ISO times): the schedule, overrides, holds and preheat of the
   next 36 hours, at most 50 entries. Empty while the zone is off.
 - `homeai_signals` = list of `{id, title, severity 0–4, category, description?, need?, group?}` — the zone's
@@ -176,6 +178,23 @@ can implement the same contract.
 | `heat_zones.set_schedule` | `weekly` in the same format | — |
 | `heat_zones.estimate` | `temperature` | `{entity_id: {minutes \| null, confidence 0–1}}` |
 | `heat_zones.reset_learning` | — | — |
+
+Details:
+
+- `add_override` with an `override_id` that does not exist yet creates it under that id (upsert); `override_id` is
+  1–80 characters, `source` at most 60. An override sent again **unchanged** (same start, end and value) keeps its
+  age, so re-sending after a restart does not undo a manual change made since; a changed one is a new instruction.
+- Times are ISO 8601 (without an offset: local time). An override may start in the past; its end must be in the
+  future and after the start, and it may last at most 90 days. `preset_mode` must exist in every targeted zone.
+- `remove_override` with an unknown id removes nothing (`{removed: 0}`), not an error.
+- `set_schedule` replaces the whole week; days are `mon` … `sun`, times `HH:MM`, temperatures 5–30 °C (rounded to
+  0.5). A schedule invalid for any targeted zone changes none.
+- `estimate` gives the minutes of continuous heating from now (0 when already there, `null` without a room
+  temperature or when not reachable within 12 hours).
+- **Who changed it**: states written because of a Heat Zones service carry the caller's context, and changes on the
+  zone thermostat carry the context Home Assistant gives them; the integration's own changes (schedule, preheat,
+  the end of an override or a hold) get a fresh context without a user. The `source` attribute (`schedule`,
+  `override`, `hold`, `manual`, `preheat`) says the same without contexts.
 
 Example — HomeAI knows about a trip:
 

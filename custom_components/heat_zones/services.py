@@ -13,6 +13,7 @@ Contract (see README, “Contract for other systems”) — targets are the zone
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from datetime import datetime
 from typing import Any
 
@@ -24,7 +25,7 @@ from homeassistant.util import dt as dt_util
 import probatio as vol
 
 from .const import DOMAIN, ID_MAX, MAX_TEMP, MIN_TEMP, OVERRIDE_MAX, REASON_MAX, SOURCE_MAX
-from .engine import HeatZones
+from .engine import CALLER, HeatZones
 from .schedule import ScheduleError, normalize_weekly
 
 TEMPERATURE = vol.All(vol.Coerce(float), vol.Range(min=MIN_TEMP, max=MAX_TEMP))
@@ -200,7 +201,21 @@ def async_register(hass: HomeAssistant) -> None:
         for zid in targets.values():
             await engine.resume(zid)
 
-    register = hass.services.async_register
+    def with_caller(handler: Callable[[ServiceCall], Awaitable[Any]]) -> Callable[[ServiceCall], Awaitable[Any]]:
+        """States written by the call carry the caller's context (a person, an automation, HomeAI)."""
+
+        async def run(call: ServiceCall) -> Any:
+            token = CALLER.set(call.context)
+            try:
+                return await handler(call)
+            finally:
+                CALLER.reset(token)
+
+        return run
+
+    def register(domain: str, service: str, handler: Callable[[ServiceCall], Awaitable[Any]], **kw: Any) -> None:
+        hass.services.async_register(domain, service, with_caller(handler), **kw)
+
     register(DOMAIN, "add_override", add_override, schema=ADD_OVERRIDE, supports_response=SupportsResponse.OPTIONAL)
     register(
         DOMAIN, "remove_override", remove_override, schema=REMOVE_OVERRIDE, supports_response=SupportsResponse.OPTIONAL

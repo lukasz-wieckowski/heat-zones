@@ -282,7 +282,7 @@ async def test_signals_and_plan_format(hass: HomeAssistant, home: Home, zones: d
     assert signal["category"] in ("safety", "security", "damage", "system", "energy", "comfort", "maintenance", "info")
     assert signal["need"] in ("nobody", "member", "admin", "service")
     assert signal["title"].startswith("Bedroom: temperature sensor silent since")
-    assert st.attributes["homeai_schedule"] == {"version": 1, "domain": "heat_zones"}
+    assert st.attributes["homeai_schedule"] == {"version": 1, "domain": "heat_zones", "areas": ["bedroom"]}
     # heating off: no plan
     await hass.services.async_call("climate", "turn_off", {"entity_id": BEDROOM}, blocking=True)
     assert hass.states.get(BEDROOM).attributes["homeai_plan"] == []
@@ -293,3 +293,58 @@ async def test_presets_for_all_zones_in_one_call(hass: HomeAssistant, zones: dic
         "climate", "set_preset_mode", {"entity_id": [LIVING, BEDROOM], "preset_mode": "eco"}, blocking=True
     )
     assert {hass.states.get(e).attributes["preset_mode"] for e in (LIVING, BEDROOM)} == {"eco"}
+
+
+async def test_override_sent_again_unchanged_keeps_its_age(hass: HomeAssistant, zones: dict, freezer: Any) -> None:
+    """A sender that re-sends its override (e.g. after a restart) must not undo a person's change made since."""
+    trip = {"start": "2026-11-17T20:00:00+01:00", "end": "2026-11-18T20:00:00+01:00", "preset_mode": "away"}
+    await call(hass, "add_override", BEDROOM, override_id="homeai_away_1", source="homeai", **trip)
+    assert hass.states.get(BEDROOM).attributes["preset_mode"] == "away"
+    freezer.tick(timedelta(minutes=10))
+    await hass.services.async_call(
+        "climate", "set_temperature", {"entity_id": BEDROOM, "temperature": 22}, blocking=True
+    )
+    assert hass.states.get(BEDROOM).attributes["source"] == "hold"  # back early: the person wins
+    freezer.tick(timedelta(minutes=10))
+    await call(hass, "add_override", BEDROOM, override_id="homeai_away_1", source="homeai", reason="Trip", **trip)
+    assert hass.states.get(BEDROOM).attributes["temperature"] == 22.0  # unchanged override: still the person
+    # a changed override is a new instruction
+    await call(
+        hass,
+        "add_override",
+        BEDROOM,
+        override_id="homeai_away_1",
+        source="homeai",
+        **{**trip, "end": "2026-11-18T21:00:00+01:00"},
+    )
+    st = hass.states.get(BEDROOM)
+    assert (st.attributes["source"], st.attributes["preset_mode"]) == ("override", "away")
+
+
+async def test_state_context_says_who_changed_it(
+    hass: HomeAssistant, zones: dict, freezer: Any, hass_admin_user: Any
+) -> None:
+    """HomeAI tells people's changes from scheduled ones by the context of the state."""
+    from homeassistant.core import Context
+
+    await call(hass, "set_schedule", BEDROOM, weekly=WEEKLY)
+    person = Context(user_id=hass_admin_user.id)
+    await hass.services.async_call(
+        "climate", "set_temperature", {"entity_id": BEDROOM, "temperature": 23}, blocking=True, context=person
+    )
+    assert hass.states.get(BEDROOM).context.id == person.id
+    homeai = Context(user_id=hass_admin_user.id)
+    await hass.services.async_call(
+        "heat_zones",
+        "add_override",
+        {"entity_id": BEDROOM, "end": "2026-11-18T01:00:00+01:00", "preset_mode": "eco", "source": "homeai"},
+        blocking=True,
+        context=homeai,
+    )
+    assert hass.states.get(BEDROOM).context.id == homeai.id
+    # the override ends by itself: a fresh context, no user
+    freezer.move_to("2026-11-18 01:00:01+01:00")
+    await tick(hass, freezer, minutes=0.1)
+    st = hass.states.get(BEDROOM)
+    assert st.attributes["preset_mode"] == "sleep"
+    assert st.context.user_id is None and st.context.parent_id is None

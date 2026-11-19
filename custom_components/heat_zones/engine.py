@@ -25,6 +25,7 @@ from __future__ import annotations
 import asyncio
 from collections import deque
 from collections.abc import Callable
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from statistics import mean
@@ -32,7 +33,7 @@ import time
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import CALLBACK_TYPE, Event, EventStateChangedData, HomeAssistant, State, callback
+from homeassistant.core import CALLBACK_TYPE, Context, Event, EventStateChangedData, HomeAssistant, State, callback
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.event import (
     async_call_later,
@@ -113,7 +114,13 @@ from .schedule import (
     with_preheat,
 )
 
-HOMEAI_SCHEDULE = {"version": 1, "domain": DOMAIN}
+CONTRACT_VERSION = 1
+
+# Who caused the recalculation that is writing the zones' states: the Context of a Heat Zones service call, True
+# for a call on the zone entity itself (Home Assistant has already set the caller's context on it), False for the
+# integration's own work (schedule, preheat, timers, devices) — then the states get a fresh context, so other
+# systems never mistake a scheduled change for a person's change.
+CALLER: ContextVar[Context | bool] = ContextVar("heat_zones_caller", default=False)
 
 
 @dataclass
@@ -585,7 +592,7 @@ class HeatZones:
         self._manual(z, temperature, None)
         if hvac_on is not None:
             z.state["hvac"] = "heat" if hvac_on else "off"
-        await self.recalc()
+        await self._apply()
 
     async def set_preset(self, zid: str, preset: str) -> None:
         z = self.zones[zid]
@@ -594,12 +601,12 @@ class HeatZones:
             self._manual(z, current, None)
         else:
             self._manual(z, z.presets[preset], preset)
-        await self.recalc()
+        await self._apply()
 
     async def set_hvac(self, zid: str, on: bool) -> None:
         self.zones[zid].state["hvac"] = "heat" if on else "off"
         self.save_later()
-        await self.recalc()
+        await self._apply()
 
     async def set_measure_at(self, zid: str, point: str) -> None:
         z = self.zones[zid]
@@ -609,7 +616,7 @@ class HeatZones:
         z.history.clear()
         self._windows.pop(zid, None)
         self.save_later()
-        await self.recalc()
+        await self._apply()
 
     async def set_schedule_enabled(self, zid: str, enabled: bool) -> None:
         z = self.zones[zid]
@@ -622,14 +629,14 @@ class HeatZones:
         z.state["preheat"] = None
         self._clean(z, now)
         self.save_later()
-        await self.recalc()
+        await self._apply()
 
     async def set_weekly(self, zid: str, weekly: list[dict[str, Any]]) -> None:
         z = self.zones[zid]
         z.state["schedule"]["weekly"] = weekly
         z.state["preheat"] = None
         self.save_later()
-        await self.recalc()
+        await self._apply()
 
     async def hold(
         self, zid: str, temperature: float | None, preset: str | None, until: datetime | None, permanent: bool
@@ -651,13 +658,13 @@ class HeatZones:
             z.state["manual"] = {"temperature": value, "preset_mode": chosen}
         z.state["preheat"] = None
         self.save_later()
-        await self.recalc()
+        await self._apply()
 
     async def resume(self, zid: str) -> None:
         z = self.zones[zid]
         z.state["hold"] = None
         self.save_later()
-        await self.recalc()
+        await self._apply()
 
     async def add_override(
         self,
@@ -678,12 +685,29 @@ class HeatZones:
             if value is not None:
                 lo, hi = self.target_range(z)
                 value = _clamp(round(value * 2) / 2, lo, hi)
-            o = Override(oid, start, end, preset, value, reason, source, now)
+            created = now
+            if (old := next((x for x in z.state["overrides"] if x.get("override_id") == oid), None)) is not None:
+                previous = Override.from_dict(old, parse_time)
+                # sent again unchanged (e.g. after a restart of the sender): it keeps its age, so it does not beat
+                # a manual change made in the meantime — newer instructions win
+                if previous is not None and (
+                    previous.start,
+                    previous.end,
+                    previous.preset_mode,
+                    previous.temperature,
+                ) == (
+                    start,
+                    end,
+                    preset,
+                    value,
+                ):
+                    created = previous.created
+            o = Override(oid, start, end, preset, value, reason, source, created)
             kept = [x for x in z.state["overrides"] if x.get("override_id") != oid]
             z.state["overrides"] = [*kept, o.stored()]
             z.state["preheat"] = None
         self.save_later()
-        await self.recalc()
+        await self._apply()
         return oid
 
     async def remove_overrides(self, zids: list[str], override_id: str | None, source: str | None) -> int:
@@ -702,7 +726,7 @@ class HeatZones:
             z.state["overrides"] = kept
         if removed:
             self.save_later()
-            await self.recalc()
+            await self._apply()
         return removed
 
     def get_schedule(self, zid: str) -> dict[str, Any]:
@@ -731,7 +755,7 @@ class HeatZones:
         z.history.clear()
         self._windows.pop(zid, None)
         self.save_later()
-        self._notify(zid)
+        await self._apply()
 
     async def set_valve_limit(self, zid: str, value: float) -> None:
         for trv in self.zones[zid].trvs:
@@ -762,6 +786,15 @@ class HeatZones:
         return (max([*lo, MIN_TEMP]), min([*hi, MAX_TEMP]))
 
     # ——— Recalculation ———
+    async def _apply(self) -> None:
+        """Recalculate after a change asked for by somebody — states carry their context (see CALLER)."""
+        token = CALLER.set(True) if CALLER.get() is False else None
+        try:
+            await self.recalc()
+        finally:
+            if token is not None:
+                CALLER.reset(token)
+
     async def recalc(self, learn: bool = False) -> None:
         """Read and learn every zone, plan its target, drive the thermostats and check the valves."""
         async with self._lock:
@@ -1423,7 +1456,7 @@ class HeatZones:
             "schedule_enabled": p.schedule_enabled,
             "preset_temperatures": dict(z.presets),
             "next_change": self.next_change(z),
-            "homeai_schedule": HOMEAI_SCHEDULE,
+            "homeai_schedule": {"version": CONTRACT_VERSION, "domain": DOMAIN, "areas": list(z.areas)},
             "homeai_plan": self.plan(z),
             "homeai_signals": z.signals,
         }

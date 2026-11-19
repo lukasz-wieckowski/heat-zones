@@ -163,6 +163,10 @@ każda integracja termostatu. Szczegóły (pola, odpowiedzi, przykład) są w [R
   `{entity_id: {enabled, weekly, overrides}}`), `set_schedule`, `estimate` (odpowiedź
   `{entity_id: {minutes | null, confidence}}`) i `reset_learning`.
 
+Nadpisanie z `open_end: true` ma koniec tylko jako horyzont: nadawca przedłuża je, dopóki trwa powód (nikogo
+w domu, tryb urlopowy), i usuwa, gdy powód minie. Strefa nie nagrzewa na zapas pod taki koniec (pod prawdziwy, np.
+powrót z wyjazdu — tak), a przedłużenie zachowuje wiek i początek nadpisania.
+
 Nadpisanie wysłane ponownie bez zmian (ten sam początek, koniec i wartość) zachowuje swój wiek, więc nie cofa
 ręcznej zmiany zrobionej w międzyczasie. Stany zapisane przez usługę Stref niosą kontekst wywołującego, a własne
 zmiany integracji (harmonogram, nagrzewanie, koniec nadpisania) — świeży kontekst bez użytkownika.

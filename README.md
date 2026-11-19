@@ -172,9 +172,9 @@ can implement the same contract.
 
 | Service | Fields | Response |
 |---|---|---|
-| `heat_zones.add_override` | `end` (required), `start` (default now), exactly one of `preset_mode` / `temperature`, `reason` (≤ 200 characters), `source`, `override_id` (the same id replaces the override) | `{override_id}` |
+| `heat_zones.add_override` | `end` (required), `start` (default now), exactly one of `preset_mode` / `temperature`, `reason` (≤ 200 characters), `source`, `override_id` (the same id replaces the override), `open_end` (optional, default false) | `{override_id}` |
 | `heat_zones.remove_override` | `override_id` or `source` (removes all overrides from that source); without a target: every zone | `{removed}` |
-| `heat_zones.get_schedule` | without a target: every zone | `{entity_id: {enabled, weekly: [{days: ["mon", …], time: "HH:MM", preset_mode \| temperature}], overrides: [{override_id, start, end, preset_mode \| temperature, reason, source}]}}` |
+| `heat_zones.get_schedule` | without a target: every zone | `{entity_id: {enabled, weekly: [{days: ["mon", …], time: "HH:MM", preset_mode \| temperature}], overrides: [{override_id, start, end, preset_mode \| temperature, reason, source, open_end?}]}}` |
 | `heat_zones.set_schedule` | `weekly` in the same format | — |
 | `heat_zones.estimate` | `temperature` | `{entity_id: {minutes \| null, confidence 0–1}}` |
 | `heat_zones.reset_learning` | — | — |
@@ -186,6 +186,12 @@ Details:
   age, so re-sending after a restart does not undo a manual change made since; a changed one is a new instruction.
 - Times are ISO 8601 (without an offset: local time). An override may start in the past; its end must be in the
   future and after the start, and it may last at most 90 days. `preset_mode` must exist in every targeted zone.
+- **Open-ended overrides** (`open_end: true`): the end is only a horizon — the sender renews the override while its
+  reason lasts (nobody home, vacation mode) and removes it when the reason is gone. An active override always beats
+  the schedule; the zone never preheats towards the horizon (a real end, such as the return from a trip, is
+  prepared for). A renewal — the same id and value, a later end, the same start or a start of "now" once it has
+  begun — keeps the override's age and start, so it does not beat a manual change made since. If nobody renews it,
+  the schedule simply resumes at the horizon. `get_schedule` returns `open_end: true` on such overrides.
 - `remove_override` with an unknown id removes nothing (`{removed: 0}`), not an error.
 - `set_schedule` replaces the whole week; days are `mon` … `sun`, times `HH:MM`, temperatures 5–30 °C (rounded to
   0.5). A schedule invalid for any targeted zone changes none.

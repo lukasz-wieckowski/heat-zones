@@ -115,6 +115,8 @@ from .schedule import (
 )
 
 CONTRACT_VERSION = 1
+# optional parts of contract version 1 this thermostat understands; senders use them only when listed here
+CONTRACT_FEATURES = ("open_end",)
 
 # Who caused the recalculation that is writing the zones' states: the Context of a Heat Zones service call, True
 # for a call on the zone entity itself (Home Assistant has already set the caller's context on it), False for the
@@ -1452,7 +1454,12 @@ class HeatZones:
             "schedule_enabled": p.schedule_enabled,
             "preset_temperatures": dict(z.presets),
             "next_change": self.next_change(z),
-            "homeai_schedule": {"version": CONTRACT_VERSION, "domain": DOMAIN, "areas": list(z.areas)},
+            "homeai_schedule": {
+                "version": CONTRACT_VERSION,
+                "domain": DOMAIN,
+                "areas": list(z.areas),
+                "features": list(CONTRACT_FEATURES),
+            },
             "homeai_plan": self.plan(z),
             "homeai_signals": z.signals,
         }

@@ -282,7 +282,12 @@ async def test_signals_and_plan_format(hass: HomeAssistant, home: Home, zones: d
     assert signal["category"] in ("safety", "security", "damage", "system", "energy", "comfort", "maintenance", "info")
     assert signal["need"] in ("nobody", "member", "admin", "service")
     assert signal["title"].startswith("Bedroom: temperature sensor silent since")
-    assert st.attributes["homeai_schedule"] == {"version": 1, "domain": "heat_zones", "areas": ["bedroom"]}
+    assert st.attributes["homeai_schedule"] == {
+        "version": 1,
+        "domain": "heat_zones",
+        "areas": ["bedroom"],
+        "features": ["open_end"],
+    }
     # heating off: no plan
     await hass.services.async_call("climate", "turn_off", {"entity_id": BEDROOM}, blocking=True)
     assert hass.states.get(BEDROOM).attributes["homeai_plan"] == []

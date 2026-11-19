@@ -158,9 +158,10 @@ can implement the same contract.
 
 **Attributes of `climate.<zone>`:**
 
-- `homeai_schedule` = `{"version": 1, "domain": "heat_zones", "areas": [...]}` — this thermostat supports the
-  contract; `areas` (optional for other implementations) are the ids of the areas the zone heats. The zone's own
-  device has no area, so systems should read the rooms from here.
+- `homeai_schedule` = `{"version": 1, "domain": "heat_zones", "areas": [...], "features": ["open_end"]}` — this
+  thermostat supports the contract; `areas` (optional for other implementations) are the ids of the areas the zone
+  heats (the zone's own device has no area, so systems should read the rooms from here); `features` lists the
+  optional parts of version 1 it understands — senders use `open_end` only with thermostats that list it.
 - `homeai_plan` = list of `{start, title, end?}` (ISO times): the schedule, overrides, holds and preheat of the
   next 36 hours, at most 50 entries. Empty while the zone is off.
 - `homeai_signals` = list of `{id, title, severity 0–4, category, description?, need?, group?}` — the zone's

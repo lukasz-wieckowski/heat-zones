@@ -156,8 +156,9 @@ w innych kartach.
 Heat Zones publikuje, co zrobi, i przyjmuje zmiany od systemów takich jak HomeAI. Ten sam kontrakt może spełnić
 każda integracja termostatu. Szczegóły (pola, odpowiedzi, przykład) są w [README po angielsku](README.md#contract-for-other-systems):
 
-- atrybuty `homeai_schedule` (`{"version": 1, "domain": "heat_zones", "areas": [...]}` — `areas` to obszary, które
-  strefa grzeje), `homeai_plan` (`{start, title, end?}`,
+- atrybuty `homeai_schedule` (`{"version": 1, "domain": "heat_zones", "areas": [...], "features": ["open_end"]}` —
+  `areas` to obszary, które strefa grzeje, `features` to opcjonalne części kontraktu, które termostat rozumie),
+  `homeai_plan` (`{start, title, end?}`,
   36 h, do 50) i `homeai_signals` (`{id, title, severity 0–4, category, description?, need?, group?}`);
 - usługi `heat_zones.add_override` (odpowiedź `{override_id}`), `remove_override`, `get_schedule` (odpowiedź
   `{entity_id: {enabled, weekly, overrides}}`), `set_schedule`, `estimate` (odpowiedź

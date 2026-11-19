@@ -4,8 +4,8 @@
 
 - The zone thermostat uses Home Assistant's native temperature API from 2026.11 (no deprecation warnings; the old
   names stop working in 2027.11).
-- Open-ended overrides (`add_override` with `open_end: true`, agreed with HomeAI): no preheat towards their
-  horizon, and renewals keep the override's age. Fixes heating up an empty home before a rolling "nobody home"
+- Open-ended overrides (`add_override` with `open_end: true`, agreed with HomeAI and advertised in
+  `homeai_schedule.features`): no preheat towards their horizon, and renewals keep the override's age. Fixes heating up an empty home before a rolling "nobody home"
   override is renewed (#2).
 
 First public version, built from the private *Strefy ciepła* 1.10 (code only, no stored state).

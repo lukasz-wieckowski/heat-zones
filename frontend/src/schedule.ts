@@ -78,39 +78,21 @@ export function temperatureOf(value: string, presets: Record<string, number>): n
   return presets[value] ?? null;
 }
 
-// Blue for cooler, orange for warmer targets; light around 19.5–20 °C, where cool turns warm.
-const STOPS: [number, number[]][] = [
-  [16, [43, 108, 176]],
-  [18, [79, 155, 217]],
-  [19.5, [163, 200, 234]],
-  [20, [244, 194, 138]],
-  [21, [239, 152, 72]],
-  [23, [217, 83, 30]],
-];
+// Where a target sits on the schedule's cool–warm scale: the side of the middle (19.75 °C, where cool turns warm)
+// and how strongly the bar is tinted, 0.35 next to the middle to 1 at 16 °C and below or 23 °C and above. The colours
+// themselves come from the theme (`--heat-zones-cold-color`, `--heat-zones-warm-color`, …).
+const MIDDLE = 19.75;
+const SPAN = 3.25;
 
-function rgb(temperature: number): number[] {
-  if (temperature <= STOPS[0][0]) return STOPS[0][1];
-  for (let i = 1; i < STOPS.length; i++) {
-    const [t1, c1] = STOPS[i];
-    const [t0, c0] = STOPS[i - 1];
-    if (temperature <= t1) {
-      const share = (temperature - t0) / (t1 - t0);
-      return c0.map((v, j) => Math.round(v + (c1[j] - v) * share));
-    }
-  }
-  return STOPS[STOPS.length - 1][1];
+export interface Tone {
+  side: "cold" | "warm" | "unknown";
+  share: number;
 }
 
-export function color(temperature: number | null): string {
-  if (temperature === null) return "var(--disabled-color, #bdbdbd)";
-  return `rgb(${rgb(temperature).join(",")})`;
-}
-
-// Dark text on light colours, white on dark ones.
-export function textColor(temperature: number | null): string {
-  if (temperature === null) return "#fff";
-  const [r, g, b] = rgb(temperature);
-  return 0.299 * r + 0.587 * g + 0.114 * b > 170 ? "#1f2937" : "#fff";
+export function tone(temperature: number | null): Tone {
+  if (temperature === null || Number.isNaN(temperature)) return { side: "unknown", share: 1 };
+  const position = Math.max(-1, Math.min(1, (temperature - MIDDLE) / SPAN));
+  return { side: position < 0 ? "cold" : "warm", share: Math.round((0.35 + 0.65 * Math.abs(position)) * 100) / 100 };
 }
 
 export function localInput(date: Date): string {

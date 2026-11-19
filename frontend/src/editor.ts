@@ -8,14 +8,13 @@ import {
   DAYS,
   blockValue,
   byDay,
-  color,
   dayBars,
   localInput,
   temperatureOf,
-  textColor,
+  tone,
   toWeekly,
 } from "./schedule";
-import { shared } from "./styles";
+import { parts, shared } from "./styles";
 import type { Day, DayBlock, HomeAssistant, Schedule } from "./types";
 
 export async function fetchSchedule(hass: HomeAssistant, entity: string): Promise<Schedule | null> {
@@ -55,29 +54,29 @@ export class HeatZonesScheduleEditor extends LitElement {
     css`
       .week {
         display: grid;
-        grid-template-columns: 2.6em 1fr;
-        gap: 6px 8px;
+        grid-template-columns: max-content 1fr;
+        gap: var(--hz-small-gap) var(--hz-gap);
         align-items: center;
       }
       .day {
-        font-size: 0.9em;
+        font-size: var(--hz-small-font-size);
         color: var(--hz-muted);
         cursor: pointer;
       }
       .day.selected {
         color: var(--hz-accent);
-        font-weight: 600;
+        font-weight: var(--hz-title-font-weight);
       }
       .bar {
         position: relative;
-        height: 22px;
-        border-radius: 6px;
+        height: var(--hz-bar-height);
+        border-radius: var(--hz-bar-radius);
         overflow: hidden;
-        background: var(--secondary-background-color, rgba(127, 127, 127, 0.1));
+        background: var(--hz-track);
         cursor: pointer;
       }
       .bar.selected {
-        outline: 2px solid var(--hz-accent);
+        outline: var(--hz-focus-width) solid var(--hz-accent);
       }
       .segment {
         position: absolute;
@@ -86,28 +85,42 @@ export class HeatZonesScheduleEditor extends LitElement {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.7em;
+        font-size: var(--hz-tiny-font-size);
         white-space: nowrap;
         overflow: hidden;
-        border-right: 1px solid rgba(255, 255, 255, 0.4);
+        color: var(--hz-schedule-text);
+        background: color-mix(
+          in srgb,
+          color-mix(in srgb, var(--hz-tone) var(--hz-schedule-strength), var(--hz-schedule-base)) var(--hz-share),
+          var(--hz-schedule-base)
+        );
+        border-right: var(--hz-border-width) solid var(--hz-schedule-base);
         box-sizing: border-box;
+      }
+      .segment.cold {
+        --hz-tone: var(--hz-cold);
+      }
+      .segment.warm {
+        --hz-tone: var(--hz-warm);
+      }
+      .segment.unknown {
+        --hz-tone: var(--hz-unknown);
       }
       .hours {
         display: flex;
         justify-content: space-between;
-        font-size: 0.7em;
+        font-size: var(--hz-tiny-font-size);
         color: var(--hz-muted);
         grid-column: 2;
       }
       .blocks {
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        margin-top: 12px;
+        gap: var(--hz-gap);
+        margin-top: var(--hz-section-gap);
       }
       .copy button {
-        padding: 4px 8px;
-        min-height: 28px;
+        padding: var(--hz-input-padding);
       }
     `,
   ];
@@ -192,15 +205,22 @@ export class HeatZonesScheduleEditor extends LitElement {
     const language = lang(this.hass);
     const temps = presets(this.hass, this.entity);
     const bars = dayBars(this.days, day);
-    return html`<div class="bar ${this.day === day ? "selected" : ""}" @click=${() => this.edit(day)}>
+    const selected = this.day === day;
+    return html`<div
+      class="bar ${selected ? "selected" : ""}"
+      part=${parts("day-bar", selected && "selected")}
+      @click=${() => this.edit(day)}
+    >
       ${bars.map((b) => {
         const temp = temperatureOf(b.value, temps);
+        const { side, share } = tone(temp);
         const left = (b.from / 1440) * 100;
         const width = ((b.to - b.from) / 1440) * 100;
         const text = width > 9 ? label(language, b.value) : "";
         return html`<div
-          class="segment"
-          style="left:${left}%;width:${width}%;background:${color(temp)};color:${textColor(temp)}"
+          class="segment ${side}"
+          part=${parts("segment", side)}
+          style="left:${left}%;width:${width}%;--hz-share:${Math.round(share * 100)}%"
           title="${label(language, b.value)} ${temp !== null ? degrees(language, temp) : ""}"
         >${text}</div>`;
       })}
@@ -213,11 +233,12 @@ export class HeatZonesScheduleEditor extends LitElement {
     const temps = presets(this.hass, this.entity);
     const options = this.hass.states[this.entity]?.attributes.preset_modes?.filter((p: string) => p !== "none") ?? [];
     const day = this.day;
-    return html`<div class="blocks">
+    return html`<div class="blocks" part="blocks">
       ${this.draft[day].map(
-        (b, i) => html`<div class="row">
-          <input type="time" .value=${b.time} @change=${(e: Event) => this.change(i, { time: (e.target as HTMLInputElement).value })} />
+        (b, i) => html`<div class="row" part="block">
+          <input type="time" part="input" .value=${b.time} @change=${(e: Event) => this.change(i, { time: (e.target as HTMLInputElement).value })} />
           <select
+            part="input"
             @change=${(e: Event) => {
               const v = (e.target as HTMLSelectElement).value;
               this.change(i, { value: v === "t" ? `t:${temps.comfort ?? 21}` : v });
@@ -231,6 +252,7 @@ export class HeatZonesScheduleEditor extends LitElement {
           ${b.value.startsWith("t:")
             ? html`<input
                 type="number"
+                part="input"
                 min="5"
                 max="30"
                 step="0.5"
@@ -239,21 +261,22 @@ export class HeatZonesScheduleEditor extends LitElement {
               />`
             : html`<span class="muted">${degrees(language, temps[b.value])}</span>`}
           <span class="grow"></span>
-          <button class="icon" @click=${() => this.removeBlock(i)} title=${t(language, "remove")}>✕</button>
+          <button class="icon" part="button icon" @click=${() => this.removeBlock(i)} title=${t(language, "remove")}>✕</button>
         </div>`,
       )}
-      <div class="row"><button @click=${this.add}>＋ ${t(language, "add_block")}</button></div>
+      <div class="row"><button part="button" @click=${this.add}>＋ ${t(language, "add_block")}</button></div>
       <div class="row copy">
         <span class="muted">${t(language, "copy_to")}:</span>
-        ${DAYS.filter((d) => d !== day).map(
-          (d) => html`<button class=${this.copyTo.includes(d) ? "active" : ""} @click=${() => this.toggleCopy(d)}>
+        ${DAYS.filter((d) => d !== day).map((d) => {
+          const on = this.copyTo.includes(d);
+          return html`<button class=${on ? "active" : ""} part=${parts("button", on && "active")} @click=${() => this.toggleCopy(d)}>
             ${t(language, `day.${d}`)}
-          </button>`,
-        )}
+          </button>`;
+        })}
       </div>
       <div class="row">
-        <button class="primary" @click=${this.save}>${t(language, "save")}</button>
-        <button @click=${this.cancel}>${t(language, "cancel")}</button>
+        <button class="primary" part="button primary" @click=${this.save}>${t(language, "save")}</button>
+        <button part="button" @click=${this.cancel}>${t(language, "cancel")}</button>
       </div>
     </div>`;
   }
@@ -263,18 +286,22 @@ export class HeatZonesScheduleEditor extends LitElement {
     const language = lang(this.hass);
     const empty = !(this.schedule?.weekly.length ?? 0) && !this.draft;
     return html`
-      <div class="week">
+      <div class="week" part="week">
         ${DAYS.map(
-          (d) => html`<div class="day ${this.day === d ? "selected" : ""}" @click=${() => this.edit(d)}>
+          (d) => html`<div
+              class="day ${this.day === d ? "selected" : ""}"
+              part=${parts("day-label", this.day === d && "selected")}
+              @click=${() => this.edit(d)}
+            >
               ${t(language, `day.${d}`)}
             </div>
             ${this.renderBar(d)}`,
         )}
-        <div class="hours"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+        <div class="hours" part="hours"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
       </div>
-      ${empty ? html`<div class="muted" style="margin-top:8px">${t(language, "no_blocks")}</div>` : nothing}
+      ${empty ? html`<div class="muted spaced" part="message">${t(language, "no_blocks")}</div>` : nothing}
       ${this.renderDay()}
-      ${this.message ? html`<div class="muted" style="margin-top:8px">${this.message}</div>` : nothing}
+      ${this.message ? html`<div class="muted spaced" part="message">${this.message}</div>` : nothing}
     `;
   }
 }
@@ -302,14 +329,14 @@ export class HeatZonesOverrides extends LitElement {
         padding: 0;
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: var(--hz-gap);
       }
       .form {
         display: grid;
         grid-template-columns: auto 1fr;
-        gap: 8px;
+        gap: var(--hz-gap);
         align-items: center;
-        margin-top: 8px;
+        margin-top: var(--hz-gap);
       }
     `,
   ];
@@ -364,34 +391,37 @@ export class HeatZonesOverrides extends LitElement {
     const options = this.hass.states[this.entity].attributes.preset_modes?.filter((p: string) => p !== "none") ?? [];
     return html`
       ${overrides.length
-        ? html`<ul>
+        ? html`<ul part="list">
             ${overrides.map(
-              (o) => html`<li class="row">
+              (o) => html`<li class="row" part="override">
                 <span class="grow">
                   <strong>${o.preset_mode ? presetName(language, o.preset_mode) : degrees(language, o.temperature)}</strong>
                   ${o.reason ? html` · ${o.reason}` : nothing}
                   <div class="muted">${clock(language, o.start)} – ${clock(language, o.end)}${o.source ? ` · ${o.source}` : ""}</div>
                 </span>
-                <button class="icon" @click=${() => this.removeOverride(o.override_id)} title=${t(language, "remove")}>✕</button>
+                <button class="icon" part="button icon" @click=${() => this.removeOverride(o.override_id)} title=${t(language, "remove")}>
+                  ✕
+                </button>
               </li>`,
             )}
           </ul>`
-        : html`<div class="muted">${t(language, "no_overrides")}</div>`}
+        : html`<div class="muted" part="message">${t(language, "no_overrides")}</div>`}
       ${this.adding
-        ? html`<div class="form">
+        ? html`<div class="form" part="form">
             <span>${t(language, "from")}</span>
-            <input type="datetime-local" .value=${this.from} @change=${(e: Event) => (this.from = (e.target as HTMLInputElement).value)} />
+            <input type="datetime-local" part="input" .value=${this.from} @change=${(e: Event) => (this.from = (e.target as HTMLInputElement).value)} />
             <span>${t(language, "to")}</span>
-            <input type="datetime-local" .value=${this.to} @change=${(e: Event) => (this.to = (e.target as HTMLInputElement).value)} />
+            <input type="datetime-local" part="input" .value=${this.to} @change=${(e: Event) => (this.to = (e.target as HTMLInputElement).value)} />
             <span></span>
             <div class="row">
-              <select @change=${(e: Event) => (this.value = (e.target as HTMLSelectElement).value)}>
+              <select part="input" @change=${(e: Event) => (this.value = (e.target as HTMLSelectElement).value)}>
                 ${options.map((p: string) => html`<option value=${p} ?selected=${this.value === p}>${presetName(language, p)}</option>`)}
                 <option value="t:21" ?selected=${this.value.startsWith("t:")}>${t(language, "temperature")}</option>
               </select>
               ${this.value.startsWith("t:")
                 ? html`<input
                     type="number"
+                    part="input"
                     min="5"
                     max="30"
                     step="0.5"
@@ -401,15 +431,15 @@ export class HeatZonesOverrides extends LitElement {
                 : nothing}
             </div>
             <span>${t(language, "reason")}</span>
-            <input .value=${this.reason} maxlength="200" @input=${(e: Event) => (this.reason = (e.target as HTMLInputElement).value)} />
+            <input part="input" .value=${this.reason} maxlength="200" @input=${(e: Event) => (this.reason = (e.target as HTMLInputElement).value)} />
             <span></span>
             <div class="row">
-              <button class="primary" @click=${this.add}>${t(language, "save")}</button>
-              <button @click=${() => (this.adding = false)}>${t(language, "cancel")}</button>
+              <button class="primary" part="button primary" @click=${this.add}>${t(language, "save")}</button>
+              <button part="button" @click=${() => (this.adding = false)}>${t(language, "cancel")}</button>
             </div>
           </div>`
-        : html`<div class="row" style="margin-top:8px"><button @click=${this.open}>＋ ${t(language, "add_override")}</button></div>`}
-      ${this.message ? html`<div class="muted">${this.message}</div>` : nothing}
+        : html`<div class="row spaced"><button part="button" @click=${this.open}>＋ ${t(language, "add_override")}</button></div>`}
+      ${this.message ? html`<div class="muted spaced" part="message">${this.message}</div>` : nothing}
     `;
   }
 }

@@ -7,6 +7,9 @@
 - Open-ended overrides (`add_override` with `open_end: true`, agreed with HomeAI and advertised in
   `homeai_schedule.features`): no preheat towards their horizon, and renewals keep the override's age. Fixes heating up an empty home before a rolling "nobody home"
   override is renewed (#2).
+- The card and the editor elements take every colour, font, size, radius and spacing from the Home Assistant theme
+  (light and dark), through `--heat-zones-*` variables with Home Assistant defaults and `::part` names, described
+  in the README (Theming). The card also shows the window pause and the zone's problems in their own colours.
 
 First public version, built from the private *Strefy ciepła* 1.10 (code only, no stored state).
 

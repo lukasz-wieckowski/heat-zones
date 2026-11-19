@@ -7,8 +7,8 @@ import { element } from "./define";
 import "./editor";
 import { clock, degrees, lang, presetName, t } from "./i18n";
 import { localInput } from "./schedule";
-import { shared } from "./styles";
-import type { HassEntity, HomeAssistant } from "./types";
+import { parts, shared } from "./styles";
+import type { HassEntity, HomeAssistant, Signal } from "./types";
 
 interface CardConfig {
   type: string;
@@ -23,6 +23,11 @@ function isZone(st: HassEntity | undefined): boolean {
   return st?.attributes?.homeai_schedule?.domain === "heat_zones";
 }
 
+// Parts of the embedded editors, passed on so that `heat-zones-card::part(segment)` reaches into them as well.
+export const EDITOR_PARTS =
+  "week, day-label, day-bar, segment, hours, blocks, block, input, button, message, selected, cold, warm, unknown, active, primary, icon";
+export const OVERRIDES_PARTS = "list, override, form, input, button, message, primary, icon";
+
 @element("heat-zones-card")
 export class HeatZonesCard extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
@@ -34,36 +39,55 @@ export class HeatZonesCard extends LitElement {
     shared,
     css`
       ha-card {
-        padding: 16px;
+        padding: var(--hz-padding);
       }
       .head {
         display: flex;
+        flex-wrap: wrap;
         align-items: flex-start;
-        gap: 12px;
+        gap: var(--hz-gap);
+      }
+      .head > .grow {
+        flex: 1 1 16ch;
+        min-width: auto;
       }
       .now {
-        font-size: 2.4em;
-        font-weight: 300;
-        line-height: 1;
+        font-size: var(--hz-temperature-font-size);
+        font-weight: var(--hz-temperature-font-weight);
+        line-height: var(--hz-condensed-line-height);
+        white-space: nowrap;
+      }
+      .now.heating {
+        color: var(--hz-heating);
       }
       .target {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: var(--hz-small-gap);
       }
       .target strong {
-        font-size: 1.3em;
-        min-width: 4.2em;
+        font-size: var(--hz-target-font-size);
+        font-weight: var(--hz-title-font-weight);
+        min-width: 6ch;
         text-align: center;
+        white-space: nowrap;
       }
       .chips {
-        margin-top: 12px;
+        margin-top: var(--hz-gap);
       }
       .why {
-        margin-top: 4px;
+        margin-top: var(--hz-small-gap);
       }
-      .heating {
-        color: var(--state-climate-heat-color, #ff8100);
+      .why.window {
+        color: var(--hz-window);
+      }
+      .problem {
+        color: var(--hz-problem);
+        font-size: var(--hz-small-font-size);
+      }
+      .section-head,
+      .note {
+        margin-bottom: var(--hz-gap);
       }
     `,
   ];
@@ -122,23 +146,29 @@ export class HeatZonesCard extends LitElement {
     const a = st.attributes;
     const next = a.next_change as { at: string; temperature: number; preset_mode: string | null } | null;
     const heating = a.hvac_action === "heating";
-    return html`<div class="head">
+    const paused = Boolean(a.window_pause);
+    const admin = this.hass.user?.is_admin ?? true;
+    const signals = ((a.homeai_signals ?? []) as Signal[]).filter((s) => admin || s.need !== "admin");
+    return html`<div class="head" part="header">
         <div class="grow">
-          <h3>${this.config.title ?? a.friendly_name}</h3>
-          <div class="now ${heating ? "heating" : ""}">${degrees(language, a.current_temperature)}</div>
-          <div class="why muted">${a.reason ?? ""}</div>
+          <h3 part="title">${this.config.title ?? a.friendly_name}</h3>
+          <div class="now ${heating ? "heating" : ""}" part=${parts("temperature", heating && "heating")}>
+            ${degrees(language, a.current_temperature)}
+          </div>
+          <div class="why muted ${paused ? "window" : ""}" part=${parts("reason", paused && "window")}>${a.reason ?? ""}</div>
+          ${signals.map((s) => html`<div class="problem" part="problem">${s.title}</div>`)}
           ${next
-            ? html`<div class="muted">
+            ? html`<div class="muted" part="next">
                 ${t(language, "next")}: ${clock(language, next.at)} →
                 ${next.preset_mode ? presetName(language, next.preset_mode) : ""} ${degrees(language, next.temperature)}
               </div>`
             : nothing}
         </div>
         ${this.config.show_controls
-          ? html`<div class="target">
-              <button class="icon" @click=${() => this.step(-0.5)} ?disabled=${st.state === "off"}>−</button>
-              <strong>${st.state === "off" ? t(language, "off") : degrees(language, a.temperature)}</strong>
-              <button class="icon" @click=${() => this.step(0.5)} ?disabled=${st.state === "off"}>＋</button>
+          ? html`<div class="target" part="target">
+              <button class="icon" part="button icon" @click=${() => this.step(-0.5)} ?disabled=${st.state === "off"}>−</button>
+              <strong part="target-value">${st.state === "off" ? t(language, "off") : degrees(language, a.temperature)}</strong>
+              <button class="icon" part="button icon" @click=${() => this.step(0.5)} ?disabled=${st.state === "off"}>＋</button>
             </div>`
           : nothing}
       </div>
@@ -151,28 +181,49 @@ export class HeatZonesCard extends LitElement {
     const presets = (a.preset_modes ?? []).filter((p: string) => p !== "none") as string[];
     const held = a.source === "hold";
     const scheduled = a.schedule_enabled;
-    return html`<div class="row chips">
-        <button class=${st.state === "off" ? "" : "active"} @click=${() => this.climate(st.state === "off" ? "turn_on" : "turn_off")}>
-          ${st.state === "off" ? t(language, "off") : t(language, "on")}
+    const on = st.state !== "off";
+    return html`<div class="row chips" part="controls">
+        <button class=${on ? "active" : ""} part=${parts("button", on && "active")} @click=${() => this.climate(on ? "turn_off" : "turn_on")}>
+          ${on ? t(language, "on") : t(language, "off")}
         </button>
-        ${presets.map(
-          (p) => html`<button class=${a.preset_mode === p ? "active" : ""} @click=${() => this.climate("set_preset_mode", { preset_mode: p })}>
+        ${presets.map((p) => {
+          const active = a.preset_mode === p;
+          return html`<button
+            class=${active ? "active" : ""}
+            part=${parts("button", active && "active")}
+            @click=${() => this.climate("set_preset_mode", { preset_mode: p })}
+          >
             ${presetName(language, p)}
-          </button>`,
-        )}
+          </button>`;
+        })}
       </div>
       ${scheduled
-        ? html`<div class="row chips">
-            ${held ? html`<button @click=${() => this.hass.callService("heat_zones", "resume", {}, { entity_id: this.config.entity })}>
-              ${t(language, "resume")}</button>` : nothing}
-            <button @click=${() => this.hold({ permanent: true })}>${t(language, "hold_permanent")}</button>
+        ? html`<div class="row chips" part="controls">
+            ${held
+              ? html`<button part="button" @click=${() => this.hass.callService("heat_zones", "resume", {}, { entity_id: this.config.entity })}>
+                  ${t(language, "resume")}
+                </button>`
+              : nothing}
+            <button part="button" @click=${() => this.hold({ permanent: true })}>${t(language, "hold_permanent")}</button>
             ${this.holdOpen
-              ? html`<input type="datetime-local" .value=${this.holdUntil} @change=${(e: Event) => (this.holdUntil = (e.target as HTMLInputElement).value)} />
-                  <button class="primary" @click=${() => this.hold({ until: new Date(this.holdUntil).toISOString() })}>${t(language, "hold")}</button>`
-              : html`<button @click=${() => {
-                  this.holdUntil = localInput(new Date(Date.now() + 2 * 3600 * 1000));
-                  this.holdOpen = true;
-                }}>${t(language, "hold_until")}…</button>`}
+              ? html`<input
+                    type="datetime-local"
+                    part="input"
+                    .value=${this.holdUntil}
+                    @change=${(e: Event) => (this.holdUntil = (e.target as HTMLInputElement).value)}
+                  />
+                  <button class="primary" part="button primary" @click=${() => this.hold({ until: new Date(this.holdUntil).toISOString() })}>
+                    ${t(language, "hold")}
+                  </button>`
+              : html`<button
+                  part="button"
+                  @click=${() => {
+                    this.holdUntil = localInput(new Date(Date.now() + 2 * 3600 * 1000));
+                    this.holdOpen = true;
+                  }}
+                >
+                  ${t(language, "hold_until")}…
+                </button>`}
           </div>`
         : nothing}`;
   }
@@ -181,30 +232,38 @@ export class HeatZonesCard extends LitElement {
     if (!this.hass || !this.config) return nothing;
     const st = this.st;
     const language = lang(this.hass);
-    if (!st) return html`<ha-card><div class="muted">${this.config.entity}: ${t(language, "unavailable")}</div></ha-card>`;
+    if (!st)
+      return html`<ha-card part="card"><div class="muted" part="message">${this.config.entity}: ${t(language, "unavailable")}</div></ha-card>`;
     const sw = this.scheduleSwitch();
     const enabled = sw ? this.hass.states[sw]?.state === "on" : st.attributes.schedule_enabled;
-    return html`<ha-card>
-      <section>${this.renderHead(st)}</section>
+    return html`<ha-card part="card">
+      <section part="section">${this.renderHead(st)}</section>
       ${this.config.show_schedule
-        ? html`<section>
-            <div class="row" style="margin-bottom:8px">
-              <h3 class="grow">${t(language, "schedule")}</h3>
+        ? html`<section part="section">
+            <div class="row section-head">
+              <h3 class="grow" part="section-title">${t(language, "schedule")}</h3>
               ${sw
-                ? html`<button class=${enabled ? "active" : ""} @click=${() =>
-                    this.hass.callService("switch", enabled ? "turn_off" : "turn_on", {}, { entity_id: sw })}>
+                ? html`<button
+                    class=${enabled ? "active" : ""}
+                    part=${parts("button", enabled && "active")}
+                    @click=${() => this.hass.callService("switch", enabled ? "turn_off" : "turn_on", {}, { entity_id: sw })}
+                  >
                     ${enabled ? t(language, "on") : t(language, "off")}
                   </button>`
                 : nothing}
             </div>
-            ${enabled ? nothing : html`<div class="muted" style="margin-bottom:8px">${t(language, "schedule_off")}</div>`}
-            <heat-zones-schedule-editor .hass=${this.hass} .entity=${this.config.entity}></heat-zones-schedule-editor>
+            ${enabled ? nothing : html`<div class="muted note" part="message">${t(language, "schedule_off")}</div>`}
+            <heat-zones-schedule-editor
+              exportparts=${EDITOR_PARTS}
+              .hass=${this.hass}
+              .entity=${this.config.entity}
+            ></heat-zones-schedule-editor>
           </section>`
         : nothing}
       ${this.config.show_overrides
-        ? html`<section>
-            <h3 style="margin-bottom:8px">${t(language, "overrides")}</h3>
-            <heat-zones-overrides .hass=${this.hass} .entity=${this.config.entity}></heat-zones-overrides>
+        ? html`<section part="section">
+            <h3 class="section-head" part="section-title">${t(language, "overrides")}</h3>
+            <heat-zones-overrides exportparts=${OVERRIDES_PARTS} .hass=${this.hass} .entity=${this.config.entity}></heat-zones-overrides>
           </section>`
         : nothing}
     </ha-card>`;

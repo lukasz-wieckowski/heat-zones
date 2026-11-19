@@ -15,10 +15,14 @@ SRC = ROOT / "frontend" / "src"
 READMES = [ROOT / "README.md", ROOT / "README.pl.md"]
 
 # Defaults that are not Home Assistant variables, on purpose.
-LITERAL_DEFAULTS = {"--heat-zones-button-box-shadow": "none", "--heat-zones-schedule-strength": "70%"}
+LITERAL_DEFAULTS = {
+    "--heat-zones-schedule-strength": "70%",
+    "--heat-zones-glass-opacity": "70%",
+    "--heat-zones-press-scale": "0.97",
+}
 # Values with numbers allowed outside the token block: layout, not looks.
 ALLOWED_NUMBERS = {
-    "flex": {"1", "1 1 16ch"},
+    "flex": {"1", "1 1 20ch", "1 1 auto"},
     "grid-column": {"2"},
     "min-width": {"6ch"},
     "width": {"8ch"},
@@ -71,9 +75,16 @@ def test_token_defaults_are_home_assistant_variables() -> None:
         if public in LITERAL_DEFAULTS:
             assert default == LITERAL_DEFAULTS[public]
             continue
-        assert default.startswith("var(--"), (public, default)
         assert not COLOUR.search(default), (public, default)
-        assert not NUMBER.search(re.sub(r"var\(--[\w-]+", "", default)), (public, default)
+        numbers = NUMBER.findall(re.sub(r"var\(--[\w-]+", "", default))
+        if default.startswith("var(--"):
+            assert not numbers, (public, default)
+        elif default.startswith("color-mix("):  # a share of a theme colour
+            assert all(n.endswith("%") for n in numbers), (public, default)
+        elif default.startswith("calc("):  # derived from other sizes, e.g. concentric corners
+            assert all(re.fullmatch(r"\d*\.?\d+", n) for n in numbers), (public, default)
+        else:
+            raise AssertionError((public, default))
 
 
 def test_no_fixed_looks_outside_the_tokens() -> None:
@@ -82,9 +93,6 @@ def test_no_fixed_looks_outside_the_tokens() -> None:
         assert not COLOUR.search(re.sub(r"//.*", "", text)), name
         for block in css_blocks(text):
             for prop, value in declarations(block):
-                if prop.startswith("--hz-"):  # a private alias of another variable (e.g. the bar tone)
-                    assert value.startswith("var(--hz-"), (name, prop, value)
-                    continue
                 stripped = re.sub(r"var\(--[\w-]+", "", value)
                 if value == "0" or not NUMBER.search(stripped):
                     continue

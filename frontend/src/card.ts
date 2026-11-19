@@ -25,8 +25,8 @@ function isZone(st: HassEntity | undefined): boolean {
 
 // Parts of the embedded editors, passed on so that `heat-zones-card::part(segment)` reaches into them as well.
 export const EDITOR_PARTS =
-  "week, day-label, day-bar, segment, hours, blocks, block, input, button, message, selected, cold, warm, unknown, active, primary, icon";
-export const OVERRIDES_PARTS = "list, override, form, input, button, message, primary, icon";
+  "week, day-label, day-bar, segment, hours, blocks, sheet, sheet-title, block, input, button, message, selected, cold, warm, unknown, active, primary, icon, glass";
+export const OVERRIDES_PARTS = "list, override, form, sheet, input, button, message, primary, icon, glass";
 
 @element("heat-zones-card")
 export class HeatZonesCard extends LitElement {
@@ -48,7 +48,7 @@ export class HeatZonesCard extends LitElement {
         gap: var(--hz-gap);
       }
       .head > .grow {
-        flex: 1 1 16ch;
+        flex: 1 1 20ch;
         min-width: auto;
       }
       .now {
@@ -59,11 +59,6 @@ export class HeatZonesCard extends LitElement {
       }
       .now.heating {
         color: var(--hz-heating);
-      }
-      .target {
-        display: flex;
-        align-items: center;
-        gap: var(--hz-small-gap);
       }
       .target strong {
         font-size: var(--hz-target-font-size);
@@ -165,7 +160,7 @@ export class HeatZonesCard extends LitElement {
             : nothing}
         </div>
         ${this.config.show_controls
-          ? html`<div class="target" part="target">
+          ? html`<div class="target glass group" part="target group glass">
               <button class="icon" part="button icon" @click=${() => this.step(-0.5)} ?disabled=${st.state === "off"}>−</button>
               <strong part="target-value">${st.state === "off" ? t(language, "off") : degrees(language, a.temperature)}</strong>
               <button class="icon" part="button icon" @click=${() => this.step(0.5)} ?disabled=${st.state === "off"}>＋</button>
@@ -182,7 +177,8 @@ export class HeatZonesCard extends LitElement {
     const held = a.source === "hold";
     const scheduled = a.schedule_enabled;
     const on = st.state !== "off";
-    return html`<div class="row chips" part="controls">
+    return html`<div class="row chips">
+      <div class="glass group" part="controls group glass">
         <button class=${on ? "active" : ""} part=${parts("button", on && "active")} @click=${() => this.climate(on ? "turn_off" : "turn_on")}>
           ${on ? t(language, "on") : t(language, "off")}
         </button>
@@ -198,7 +194,7 @@ export class HeatZonesCard extends LitElement {
         })}
       </div>
       ${scheduled
-        ? html`<div class="row chips" part="controls">
+        ? html`<div class="glass group" part="controls group glass">
             ${held
               ? html`<button part="button" @click=${() => this.hass.callService("heat_zones", "resume", {}, { entity_id: this.config.entity })}>
                   ${t(language, "resume")}
@@ -225,7 +221,8 @@ export class HeatZonesCard extends LitElement {
                   ${t(language, "hold_until")}…
                 </button>`}
           </div>`
-        : nothing}`;
+        : nothing}
+    </div>`;
   }
 
   render() {
@@ -244,8 +241,8 @@ export class HeatZonesCard extends LitElement {
               <h3 class="grow" part="section-title">${t(language, "schedule")}</h3>
               ${sw
                 ? html`<button
-                    class=${enabled ? "active" : ""}
-                    part=${parts("button", enabled && "active")}
+                    class="glass ${enabled ? "active" : ""}"
+                    part=${parts("button", "glass", enabled && "active")}
                     @click=${() => this.hass.callService("switch", enabled ? "turn_off" : "turn_on", {}, { entity_id: sw })}
                   >
                     ${enabled ? t(language, "on") : t(language, "off")}

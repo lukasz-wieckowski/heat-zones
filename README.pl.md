@@ -161,6 +161,15 @@ poniżej, bez ruszania reszty Home Assistanta. Ustawia się je w motywie (bez po
 nadrzędnym albo na samym elemencie karty. Ramka karty (`ha-card`: tło, obramowanie, promień, cień) idzie za zwykłymi
 zmiennymi `--ha-card-*`, jak w każdej karcie.
 
+Domyślny wygląd idzie za Liquid Glass Apple, przeniesionym na web. Treść (temperatury, tydzień, lista nadpisań)
+zostaje zwykła; szkło jest tylko dla kontrolek, które unoszą się nad nią. Kontrolki, które należą do siebie, mają
+jeden wspólny szklany pojemnik (tryby, trzymanie, − / +), a przyciski w środku same nie są ze szkła. Wybrana opcja
+jest zabarwiona, akcja główna (Zapisz, Trzymaj) wypełniona kolorem akcentu, rogi są koncentryczne (pojemnik =
+kontrolka + odstęp), a edycja dnia i dodawanie nadpisania otwierają się w uniesionym szklanym arkuszu. Wciśnięcie
+kontrolki daje krótkie zmniejszenie. Przy systemowym *ograniczeniu przezroczystości* albo *większym kontraście*
+szkło staje się pełne (większy kontrast rysuje też mocniejsze krawędzie), a przy *ograniczeniu ruchu* nie ma
+animacji wciśnięcia.
+
 ```yaml
 # themes.yaml
 moj_motyw:
@@ -194,17 +203,20 @@ moj_motyw:
 | `--heat-zones-gap` | `--ha-space-2` | Między przyciskami, wierszami i pozycjami listy |
 | `--heat-zones-small-gap` | `--ha-space-1` | Między paskami dni, pod temperaturą |
 | `--heat-zones-section-gap` | `--ha-space-4` | Nad i pod liniami między sekcjami |
-| `--heat-zones-control-height` | `--ha-space-8` | Najmniejsza wysokość przycisków i pól |
-| `--heat-zones-control-padding` | `--ha-space-1` `--ha-space-3` | Wnętrze przycisków |
-| `--heat-zones-input-padding` | `--ha-space-1` `--ha-space-2` | Wnętrze pól i małych przycisków dni |
+| `--heat-zones-control-height` | `--ha-space-10` | Najmniejsza wysokość przycisków i pól (pole dotyku) |
+| `--heat-zones-control-padding` | `--ha-space-2` `--ha-space-4` | Wnętrze przycisków |
+| `--heat-zones-input-padding` | `--ha-space-1` `--ha-space-2` | Wnętrze pól |
+| `--heat-zones-group-padding` | `--ha-space-1` | Wnętrze szklanej grupy, wokół przycisków |
+| `--heat-zones-sheet-padding` | `--ha-space-3` | Wnętrze arkusza |
 | `--heat-zones-bar-height` | `--ha-space-6` | Paski dni harmonogramu |
-| `--heat-zones-border-width` | `--ha-border-width-sm` | Obramowania przycisków i pól, linie |
+| `--heat-zones-border-width` | `--ha-border-width-sm` | Krawędzie szkła, pól i linie |
 | `--heat-zones-focus-width` | `--ha-border-width-md` | Obwódka edytowanego dnia |
-| `--heat-zones-button-border-radius` | `--ha-border-radius-pill` | Przyciski |
-| `--heat-zones-icon-button-border-radius` | `--ha-border-radius-md` | −, + i ✕ |
-| `--heat-zones-input-border-radius` | `--ha-border-radius-md` | Pola |
+| `--heat-zones-button-border-radius` | `--ha-border-radius-pill` | Przyciski (kapsuły) |
+| `--heat-zones-icon-button-border-radius` | `--ha-border-radius-pill` | −, +, ✕ i przyciski dni |
+| `--heat-zones-input-border-radius` | `--ha-border-radius-pill` | Pola |
+| `--heat-zones-group-border-radius` | pół wysokości kontrolki + odstęp grupy | Szklane grupy (koncentrycznie z przyciskami) |
+| `--heat-zones-sheet-border-radius` | pół wysokości kontrolki + odstęp arkusza | Arkusze (koncentrycznie z polami) |
 | `--heat-zones-bar-border-radius` | `--ha-border-radius-md` | Paski dni |
-| `--heat-zones-button-box-shadow` | `none` | Przyciski |
 
 **Kolory**
 
@@ -215,13 +227,28 @@ moj_motyw:
 | `--heat-zones-disabled-text-color` | `--disabled-text-color` | Wyłączone przyciski |
 | `--heat-zones-accent-color` | `--primary-color` | Wybrane przyciski, edytowany dzień, Zapisz |
 | `--heat-zones-on-accent-color` | `--text-primary-color` | Tekst na kolorze akcentu |
-| `--heat-zones-divider-color` | `--divider-color` | Obramowania i linie |
-| `--heat-zones-button-background-color` | `--card-background-color` | Przyciski |
+| `--heat-zones-selected-color` | 18 % koloru akcentu | Zabarwienie wybranej opcji |
+| `--heat-zones-hover-color` | `--secondary-background-color` | Przycisk pod kursorem |
+| `--heat-zones-divider-color` | `--divider-color` | Pola i linie |
 | `--heat-zones-input-background-color` | `--input-fill-color` | Pola |
 | `--heat-zones-track-color` | `--secondary-background-color` | Pasek dnia bez bloków |
 | `--heat-zones-heating-color` | `--state-climate-heat-color` | Bieżąca temperatura, gdy strefa grzeje |
 | `--heat-zones-window-color` | `--state-binary_sensor-window-on-color`, inaczej `--info-color` | Linia powodu w czasie pauzy przy oknie |
 | `--heat-zones-problem-color` | `--state-binary_sensor-problem-on-color`, inaczej `--error-color` | Problemy strefy (z `homeai_signals`) |
+
+**Szkło**
+
+| Zmienna | Domyślnie | Do czego |
+| --- | --- | --- |
+| `--heat-zones-glass-color` | `--card-background-color` | Kolor materiału szkła |
+| `--heat-zones-glass-opacity` | `70%` | Ile z niego zakrywa to, co pod spodem (100% = pełne) |
+| `--heat-zones-glass-blur` | `--ha-space-4` | Rozmycie tego, co pod spodem |
+| `--heat-zones-glass-border-color` | `--divider-color` | Krawędź szkła |
+| `--heat-zones-glass-highlight-color` | krawędź zmieszana z `--ha-color-white` | Oświetlona górna krawędź |
+| `--heat-zones-glass-shadow` | `--ha-box-shadow-s` | Głębia grup, przycisków i akcji głównej |
+| `--heat-zones-sheet-shadow` | `--ha-box-shadow-m` | Głębia arkuszy |
+| `--heat-zones-transition-duration` | `--ha-animation-duration-fast` | Reakcja na wciśnięcie i najechanie |
+| `--heat-zones-press-scale` | `0.97` | Rozmiar wciśniętej kontrolki |
 
 **Paski harmonogramu.** Kolor bloku to jego cel na skali chłodno–ciepło: poniżej 19,75 °C kolor zimny, od 19,75 °C
 ciepły, wmieszany w kolor bazowy — przy środku jedna trzecia `--heat-zones-schedule-strength`, w całości przy 16 °C
@@ -247,9 +274,11 @@ heat-zones-schedule-editor::part(day-bar) { border-radius: 0; }
 
 | Element | Części (nazwy stanów) |
 | --- | --- |
-| `heat-zones-card` | `card`, `header`, `title`, `temperature` (`heating`), `reason` (`window`), `problem`, `next`, `target`, `target-value`, `controls`, `button` (`active`, `primary`, `icon`), `input`, `section`, `section-title`, `message` |
-| `heat-zones-schedule-editor` | `week`, `day-label` (`selected`), `day-bar` (`selected`), `segment` (`cold`, `warm`, `unknown`), `hours`, `blocks`, `block`, `input`, `button` (`active`, `primary`, `icon`), `message` |
-| `heat-zones-overrides` | `list`, `override`, `form`, `input`, `button` (`primary`, `icon`), `message` |
+| `heat-zones-card` | `card`, `header`, `title`, `temperature` (`heating`), `reason` (`window`), `problem`, `next`, `target` (`group`, `glass`), `target-value`, `controls` (`group`, `glass`), `button` (`active`, `primary`, `icon`, `glass`), `input`, `section`, `section-title`, `message` |
+| `heat-zones-schedule-editor` | `week`, `day-label` (`selected`), `day-bar` (`selected`), `segment` (`cold`, `warm`, `unknown`), `hours`, `blocks` (`sheet`, `glass`), `sheet-title`, `block`, `input`, `button` (`active`, `primary`, `icon`), `message` |
+| `heat-zones-overrides` | `list`, `override`, `form` (`sheet`, `glass`), `input`, `button` (`primary`, `icon`, `glass`), `message` |
+
+`::part(glass)` sięga naraz do każdej szklanej powierzchni, np. żeby dać im inny materiał.
 
 ## Kontrakt dla innych systemów
 

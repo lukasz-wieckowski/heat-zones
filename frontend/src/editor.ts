@@ -119,8 +119,17 @@ export class HeatZonesScheduleEditor extends LitElement {
         gap: var(--hz-gap);
         margin-top: var(--hz-section-gap);
       }
-      .copy button {
-        padding: var(--hz-input-padding);
+      .block {
+        display: flex;
+        align-items: center;
+        gap: var(--hz-small-gap);
+      }
+      .block select {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .block .muted {
+        white-space: nowrap;
       }
     `,
   ];
@@ -233,9 +242,10 @@ export class HeatZonesScheduleEditor extends LitElement {
     const temps = presets(this.hass, this.entity);
     const options = this.hass.states[this.entity]?.attributes.preset_modes?.filter((p: string) => p !== "none") ?? [];
     const day = this.day;
-    return html`<div class="blocks" part="blocks">
+    return html`<div class="blocks glass sheet" part="blocks sheet glass">
+      <h3 part="sheet-title">${t(language, "edit_day")}: ${t(language, `day.${day}`)}</h3>
       ${this.draft[day].map(
-        (b, i) => html`<div class="row" part="block">
+        (b, i) => html`<div class="block" part="block">
           <input type="time" part="input" .value=${b.time} @change=${(e: Event) => this.change(i, { time: (e.target as HTMLInputElement).value })} />
           <select
             part="input"
@@ -260,7 +270,6 @@ export class HeatZonesScheduleEditor extends LitElement {
                 @change=${(e: Event) => this.change(i, { value: `t:${(e.target as HTMLInputElement).value}` })}
               />`
             : html`<span class="muted">${degrees(language, temps[b.value])}</span>`}
-          <span class="grow"></span>
           <button class="icon" part="button icon" @click=${() => this.removeBlock(i)} title=${t(language, "remove")}>✕</button>
         </div>`,
       )}
@@ -269,14 +278,14 @@ export class HeatZonesScheduleEditor extends LitElement {
         <span class="muted">${t(language, "copy_to")}:</span>
         ${DAYS.filter((d) => d !== day).map((d) => {
           const on = this.copyTo.includes(d);
-          return html`<button class=${on ? "active" : ""} part=${parts("button", on && "active")} @click=${() => this.toggleCopy(d)}>
+          return html`<button class="icon ${on ? "active" : ""}" part=${parts("button", "icon", on && "active")} @click=${() => this.toggleCopy(d)}>
             ${t(language, `day.${d}`)}
           </button>`;
         })}
       </div>
-      <div class="row">
-        <button class="primary" part="button primary" @click=${this.save}>${t(language, "save")}</button>
+      <div class="row actions">
         <button part="button" @click=${this.cancel}>${t(language, "cancel")}</button>
+        <button class="primary" part="button primary" @click=${this.save}>${t(language, "save")}</button>
       </div>
     </div>`;
   }
@@ -336,7 +345,7 @@ export class HeatZonesOverrides extends LitElement {
         grid-template-columns: auto 1fr;
         gap: var(--hz-gap);
         align-items: center;
-        margin-top: var(--hz-gap);
+        margin-top: var(--hz-section-gap);
       }
     `,
   ];
@@ -399,7 +408,12 @@ export class HeatZonesOverrides extends LitElement {
                   ${o.reason ? html` · ${o.reason}` : nothing}
                   <div class="muted">${clock(language, o.start)} – ${clock(language, o.end)}${o.source ? ` · ${o.source}` : ""}</div>
                 </span>
-                <button class="icon" part="button icon" @click=${() => this.removeOverride(o.override_id)} title=${t(language, "remove")}>
+                <button
+                  class="icon glass"
+                  part="button icon glass"
+                  @click=${() => this.removeOverride(o.override_id)}
+                  title=${t(language, "remove")}
+                >
                   ✕
                 </button>
               </li>`,
@@ -407,7 +421,7 @@ export class HeatZonesOverrides extends LitElement {
           </ul>`
         : html`<div class="muted" part="message">${t(language, "no_overrides")}</div>`}
       ${this.adding
-        ? html`<div class="form" part="form">
+        ? html`<div class="form glass sheet" part="form sheet glass">
             <span>${t(language, "from")}</span>
             <input type="datetime-local" part="input" .value=${this.from} @change=${(e: Event) => (this.from = (e.target as HTMLInputElement).value)} />
             <span>${t(language, "to")}</span>
@@ -433,12 +447,14 @@ export class HeatZonesOverrides extends LitElement {
             <span>${t(language, "reason")}</span>
             <input part="input" .value=${this.reason} maxlength="200" @input=${(e: Event) => (this.reason = (e.target as HTMLInputElement).value)} />
             <span></span>
-            <div class="row">
-              <button class="primary" part="button primary" @click=${this.add}>${t(language, "save")}</button>
+            <div class="row actions">
               <button part="button" @click=${() => (this.adding = false)}>${t(language, "cancel")}</button>
+              <button class="primary" part="button primary" @click=${this.add}>${t(language, "save")}</button>
             </div>
           </div>`
-        : html`<div class="row spaced"><button part="button" @click=${this.open}>＋ ${t(language, "add_override")}</button></div>`}
+        : html`<div class="row spaced">
+            <button class="glass" part="button glass" @click=${this.open}>＋ ${t(language, "add_override")}</button>
+          </div>`}
       ${this.message ? html`<div class="muted spaced" part="message">${this.message}</div>` : nothing}
     `;
   }

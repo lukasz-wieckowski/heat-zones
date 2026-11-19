@@ -10,6 +10,10 @@
 - The card and the editor elements take every colour, font, size, radius and spacing from the Home Assistant theme
   (light and dark), through `--heat-zones-*` variables with Home Assistant defaults and `::part` names, described
   in the README (Theming). The card also shows the window pause and the zone's problems in their own colours.
+- Default look after Liquid Glass, carried over to the web: glass only on the controls (grouped in shared
+  containers, selected option tinted, main action filled, concentric corners), editing in raised glass sheets,
+  press feedback; solid glass with reduced transparency or more contrast, no animation with reduced motion. All of
+  it on `--heat-zones-*` variables with Home Assistant defaults.
 
 First public version, built from the private *Strefy ciepła* 1.10 (code only, no stored state).
 

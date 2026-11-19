@@ -41,6 +41,7 @@ ADD_OVERRIDE = vol.Schema(
         vol.Optional("reason", default=""): vol.All(cv.string, vol.Length(max=REASON_MAX)),
         vol.Optional("source", default=""): vol.All(cv.string, vol.Length(max=SOURCE_MAX)),
         vol.Optional("override_id"): vol.All(cv.string, vol.Length(min=1, max=ID_MAX)),
+        vol.Optional("open_end", default=False): cv.boolean,
     }
 )
 REMOVE_OVERRIDE = vol.Schema(
@@ -142,6 +143,7 @@ def async_register(hass: HomeAssistant) -> None:
             call.data.get("reason", "").strip(),
             call.data.get("source", "").strip(),
             call.data.get("override_id"),
+            call.data.get("open_end", False),
         )
         return {"override_id": oid}
 

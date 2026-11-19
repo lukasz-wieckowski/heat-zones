@@ -276,6 +276,10 @@
         "override_id": {
           "name": "Identyfikator",
           "description": "Nadpisanie o tym samym identyfikatorze zostaje zastąpione. Domyślnie: nowy identyfikator."
+        },
+        "open_end": {
+          "name": "Otwarty koniec",
+          "description": "Koniec to tylko horyzont: nadawca przedłuża albo usuwa nadpisanie, dopóki trwa powód (nikogo w domu, tryb urlopowy). Bez nagrzewania na zapas pod ten koniec; przedłużenie zachowuje wiek nadpisania."
         }
       }
     },

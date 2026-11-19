@@ -276,6 +276,10 @@
         "override_id": {
           "name": "Override ID",
           "description": "An override with the same ID is replaced. Default: a new ID."
+        },
+        "open_end": {
+          "name": "Open end",
+          "description": "The end is only a horizon: the sender renews or removes the override while its reason lasts (nobody home, vacation mode). No preheat towards it; a renewal keeps the override's age."
         }
       }
     },

@@ -115,6 +115,8 @@ from .schedule import (
 )
 
 CONTRACT_VERSION = 1
+# optional parts of contract version 1 this thermostat understands; senders use them only when listed here
+CONTRACT_FEATURES = ("open_end",)
 
 # Who caused the recalculation that is writing the zones' states: the Context of a Heat Zones service call, True
 # for a call on the zone entity itself (Home Assistant has already set the caller's context on it), False for the
@@ -676,6 +678,7 @@ class HeatZones:
         reason: str,
         source: str,
         override_id: str | None,
+        open_end: bool = False,
     ) -> str:
         oid = override_id or ulid_util.ulid_now().lower()
         now = dt_util.now()
@@ -685,24 +688,19 @@ class HeatZones:
             if value is not None:
                 lo, hi = self.target_range(z)
                 value = _clamp(round(value * 2) / 2, lo, hi)
-            created = now
+            created, begins = now, start
             if (old := next((x for x in z.state["overrides"] if x.get("override_id") == oid), None)) is not None:
                 previous = Override.from_dict(old, parse_time)
-                # sent again unchanged (e.g. after a restart of the sender): it keeps its age, so it does not beat
-                # a manual change made in the meantime — newer instructions win
-                if previous is not None and (
-                    previous.start,
-                    previous.end,
-                    previous.preset_mode,
-                    previous.temperature,
-                ) == (
-                    start,
-                    end,
-                    preset,
-                    value,
-                ):
-                    created = previous.created
-            o = Override(oid, start, end, preset, value, reason, source, created)
+                if previous is not None and (previous.preset_mode, previous.temperature) == (preset, value):
+                    # Sent again unchanged (e.g. after a restart of the sender): it keeps its age, so it does not
+                    # beat a manual change made in the meantime — newer instructions win. The renewal of an
+                    # open-ended override (only its horizon moves; a start of "now" again is the same start once
+                    # it has begun) is not a new instruction either.
+                    same = (previous.start, previous.end) == (start, end)
+                    started = previous.start == start or (previous.start <= now and start <= now)
+                    if same or (open_end and previous.open_end and started):
+                        created, begins = previous.created, previous.start
+            o = Override(oid, begins, end, preset, value, reason, source, created, open_end)
             kept = [x for x in z.state["overrides"] if x.get("override_id") != oid]
             z.state["overrides"] = [*kept, o.stored()]
             z.state["preheat"] = None
@@ -900,7 +898,7 @@ class HeatZones:
 
         if not z.cfg.get("optimum_start", True) or z.state["hvac"] != "heat":
             sticky = None
-        segments, preheat = with_preheat(segments, now, start_for, sticky)
+        segments, preheat = with_preheat(segments, now, start_for, sticky, p.horizons)
         stored = {"for": preheat[0].isoformat(), "start": preheat[1].isoformat()} if preheat else None
         if stored != z.state.get("preheat"):
             z.state["preheat"] = stored
@@ -1456,7 +1454,12 @@ class HeatZones:
             "schedule_enabled": p.schedule_enabled,
             "preset_temperatures": dict(z.presets),
             "next_change": self.next_change(z),
-            "homeai_schedule": {"version": CONTRACT_VERSION, "domain": DOMAIN, "areas": list(z.areas)},
+            "homeai_schedule": {
+                "version": CONTRACT_VERSION,
+                "domain": DOMAIN,
+                "areas": list(z.areas),
+                "features": list(CONTRACT_FEATURES),
+            },
             "homeai_plan": self.plan(z),
             "homeai_signals": z.signals,
         }

@@ -282,7 +282,12 @@ async def test_signals_and_plan_format(hass: HomeAssistant, home: Home, zones: d
     assert signal["category"] in ("safety", "security", "damage", "system", "energy", "comfort", "maintenance", "info")
     assert signal["need"] in ("nobody", "member", "admin", "service")
     assert signal["title"].startswith("Bedroom: temperature sensor silent since")
-    assert st.attributes["homeai_schedule"] == {"version": 1, "domain": "heat_zones", "areas": ["bedroom"]}
+    assert st.attributes["homeai_schedule"] == {
+        "version": 1,
+        "domain": "heat_zones",
+        "areas": ["bedroom"],
+        "features": ["open_end"],
+    }
     # heating off: no plan
     await hass.services.async_call("climate", "turn_off", {"entity_id": BEDROOM}, blocking=True)
     assert hass.states.get(BEDROOM).attributes["homeai_plan"] == []
@@ -348,3 +353,34 @@ async def test_state_context_says_who_changed_it(
     st = hass.states.get(BEDROOM)
     assert st.attributes["preset_mode"] == "sleep"
     assert st.context.user_id is None and st.context.parent_id is None
+
+
+async def test_open_ended_override(hass: HomeAssistant, home: Home, zones: dict, freezer: Any) -> None:
+    """HomeAI's "nobody home": eco with a horizon it renews; no preheat towards it, renewals keep the age."""
+    await call(hass, "set_schedule", LIVING, weekly=WEEKLY)
+    home.set_temperature(zones["living"], 16.0)
+    first = {"override_id": "homeai_away", "preset_mode": "eco", "source": "homeai", "open_end": True}
+    await call(hass, "add_override", LIVING, end="2026-11-17T22:20:00+01:00", reason="Nobody home", **first)
+    st = hass.states.get(LIVING)
+    assert (st.attributes["source"], st.attributes["preset_mode"]) == ("override", "eco")
+    # 22:20 the horizon, 22:30 sleep is colder anyway — move to the morning: comfort at 6:30 would be preheated
+    freezer.move_to("2026-11-18 03:00:00+01:00")
+    await call(hass, "add_override", LIVING, end="2026-11-18T06:30:00+01:00", reason="Nobody home", **first)
+    nxt = hass.states.get("sensor.living_area_next_change")
+    assert nxt.attributes["source"] == "schedule"  # the horizon, not a preheat
+    assert local(nxt.state) == local("2026-11-18T06:30:00+01:00")
+    schedule = (await call(hass, "get_schedule", LIVING))[LIVING]["overrides"]
+    assert schedule[0]["open_end"] is True and schedule[0]["start"] == "2026-11-17T21:00:00+01:00"
+    # a person turns the heat up; HomeAI renews its horizon — the person still wins
+    await hass.services.async_call(
+        "climate", "set_temperature", {"entity_id": LIVING, "temperature": 21}, blocking=True
+    )
+    freezer.tick(timedelta(minutes=5))
+    await call(hass, "add_override", LIVING, end="2026-11-18T08:00:00+01:00", reason="Nobody home", **first)
+    st = hass.states.get(LIVING)
+    assert (st.attributes["source"], st.attributes["temperature"]) == ("hold", 21.0)
+    # without open_end the same end would be prepared for
+    await call(hass, "remove_override", LIVING, source="homeai")
+    await call(hass, "resume", LIVING)
+    await call(hass, "add_override", LIVING, end="2026-11-18T06:30:00+01:00", preset_mode="eco", source="test")
+    assert hass.states.get("sensor.living_area_next_change").attributes["source"] == "preheat"

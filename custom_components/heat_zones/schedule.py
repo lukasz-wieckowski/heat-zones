@@ -155,6 +155,9 @@ class Override:
     reason: str
     source: str
     created: datetime
+    # the end is only a horizon: the sender renews or removes the override while its reason lasts (nobody home,
+    # vacation mode) — no preheat towards it, and a renewal is not a new instruction
+    open_end: bool = False
 
     def as_dict(self) -> dict[str, Any]:
         d: dict[str, Any] = {
@@ -167,6 +170,8 @@ class Override:
         else:
             d["temperature"] = self.temperature
         d.update(reason=self.reason, source=self.source)
+        if self.open_end:
+            d["open_end"] = True
         return d
 
     def stored(self) -> dict[str, Any]:
@@ -186,6 +191,7 @@ class Override:
             reason=d.get("reason") or "",
             source=d.get("source") or "",
             created=created or start,
+            open_end=bool(d.get("open_end")),
         )
 
 
@@ -243,6 +249,11 @@ class Program:
     overrides: list[Override]
     hold: Hold | None
     manual: tuple[float, str | None]
+
+    @property
+    def horizons(self) -> set[datetime]:
+        """Ends of open-ended overrides: not real times, so nothing is prepared for them."""
+        return {o.end for o in self.overrides if o.open_end}
 
     @property
     def schedule_active(self) -> bool:
@@ -321,13 +332,15 @@ def with_preheat(
     now: datetime,
     start_for: Callable[[datetime, float, float], datetime] | None,
     sticky: tuple[datetime, datetime] | None = None,
+    horizons: Collection[datetime] = (),
 ) -> tuple[list[Segment], tuple[datetime, datetime] | None]:
     """Optimum start: heating for the next warmer step begins early enough to reach it on time.
 
     `start_for(at, target, target_before)` gives the start from the thermal model (None: no estimate now, e.g.
     no room temperature — then only an already started preheat goes on). `sticky` is a preheat started earlier:
     once started for a step it goes on, otherwise a warmer room would push the start away and the target would
-    jump. Returns the segments with the preheat and the preheat (step, start) to remember.
+    jump. `horizons` are ends of open-ended overrides: a step there is no real time, so it gets no preheat. Returns
+    the segments with the preheat and the preheat (step, start) to remember.
     """
     if len(segments) < 2:
         return segments, None
@@ -335,6 +348,8 @@ def with_preheat(
     if nxt.setting.temperature <= cur.setting.temperature or nxt.setting.source not in (SCHEDULE, OVERRIDE):
         return segments, None
     if cur.setting.source == HOLD and cur.setting.hold_mode in (HOLD_UNTIL, HOLD_PERMANENT):
+        return segments, None
+    if nxt.start in horizons:
         return segments, None
     start = start_for(nxt.start, nxt.setting.temperature, cur.setting.temperature) if start_for else None
     if sticky and sticky[0] == nxt.start and sticky[1] <= now:

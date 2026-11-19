@@ -52,6 +52,7 @@ async def test_entities_and_room_temperature(hass: HomeAssistant, home: Home) ->
         "version": 1,
         "domain": "heat_zones",
         "areas": ["living_room", "kitchen", "hall"],  # the rooms the zone heats
+        "features": ["open_end"],  # optional parts of the contract it understands
     }
     assert [t["mode"] for t in st.attributes["thermostats"]] == ["room_sensor"]
     options = hass.states.get("select.living_area_measure_at").attributes["options"]

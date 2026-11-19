@@ -240,3 +240,20 @@ def test_no_preheat_for_cooler_blocks_or_explicit_holds():
     held = program(hold=Hold(16.0, None, t(18, 5), HOLD_UNTIL, t(18, 6, 30)))
     segments = held.timeline(t(18, 5, 10), t(18, 20))
     assert with_preheat(segments, t(18, 5, 10), lambda *_: t(18, 5, 30))[1] is None
+
+
+def test_no_preheat_towards_the_horizon_of_an_open_ended_override():
+    """Nobody home: eco until a horizon the sender keeps moving — the room must not heat up towards it."""
+    nobody = Override("nobody", t(18, 9), t(18, 20), "eco", None, "Nobody home", "homeai", t(18, 9), open_end=True)
+    p = program(overrides=[nobody])
+    now = t(18, 18)
+    segments = p.timeline(now, now + timedelta(hours=36))
+    assert (segments[1].start, segments[1].setting.preset_mode) == (t(18, 20), "comfort")  # still the honest end
+    result, kept = with_preheat(segments, now, lambda *_: t(18, 18, 30), horizons=p.horizons)
+    assert result == segments and kept is None
+    # a real end (back from a trip) is prepared for
+    trip = Override("trip", t(18, 9), t(18, 20), "away", None, "Trip", "homeai", t(18, 9))
+    p = program(overrides=[trip])
+    segments = p.timeline(now, now + timedelta(hours=36))
+    result, kept = with_preheat(segments, now, lambda *_: t(18, 18, 30), horizons=p.horizons)
+    assert kept == (t(18, 20), t(18, 18, 30))

@@ -161,6 +161,14 @@ variables below, without touching the rest of Home Assistant. Set them in a them
 parent element, or on the card element itself. The card frame (`ha-card`: background, border, radius, shadow)
 follows the usual `--ha-card-*` variables, like every card.
 
+The default look follows Apple's Liquid Glass, carried over to the web. Content (temperatures, the week, the list
+of overrides) stays plain; glass is only for the controls floating over it. Controls that belong together share one
+glass container (the presets, the holds, the − / + stepper), and the buttons inside are not glass themselves. The
+selected option is tinted, the main action (Save, Hold) is filled with the accent colour, corners are concentric
+(container = control + padding), and editing a day or adding an override opens in a raised glass sheet. Pressing a
+control gives a short scale feedback. With *reduce transparency* or *more contrast* set in the system the glass
+turns solid (more contrast also draws stronger edges), and with *reduce motion* there is no press animation.
+
 ```yaml
 # themes.yaml
 my_theme:
@@ -194,17 +202,20 @@ my_theme:
 | `--heat-zones-gap` | `--ha-space-2` | Between buttons, rows and list items |
 | `--heat-zones-small-gap` | `--ha-space-1` | Between day bars, under the temperature |
 | `--heat-zones-section-gap` | `--ha-space-4` | Above and below the section dividers |
-| `--heat-zones-control-height` | `--ha-space-8` | Minimum height of buttons and fields |
-| `--heat-zones-control-padding` | `--ha-space-1` `--ha-space-3` | Inside buttons |
-| `--heat-zones-input-padding` | `--ha-space-1` `--ha-space-2` | Inside fields and the small day buttons |
+| `--heat-zones-control-height` | `--ha-space-10` | Minimum height of buttons and fields (touch target) |
+| `--heat-zones-control-padding` | `--ha-space-2` `--ha-space-4` | Inside buttons |
+| `--heat-zones-input-padding` | `--ha-space-1` `--ha-space-2` | Inside fields |
+| `--heat-zones-group-padding` | `--ha-space-1` | Inside a glass group, around its buttons |
+| `--heat-zones-sheet-padding` | `--ha-space-3` | Inside a sheet |
 | `--heat-zones-bar-height` | `--ha-space-6` | Day bars of the schedule |
-| `--heat-zones-border-width` | `--ha-border-width-sm` | Borders of buttons and fields, dividers |
+| `--heat-zones-border-width` | `--ha-border-width-sm` | Edges of glass, fields and dividers |
 | `--heat-zones-focus-width` | `--ha-border-width-md` | Outline of the day being edited |
-| `--heat-zones-button-border-radius` | `--ha-border-radius-pill` | Buttons |
-| `--heat-zones-icon-button-border-radius` | `--ha-border-radius-md` | −, + and ✕ |
-| `--heat-zones-input-border-radius` | `--ha-border-radius-md` | Fields |
+| `--heat-zones-button-border-radius` | `--ha-border-radius-pill` | Buttons (capsules) |
+| `--heat-zones-icon-button-border-radius` | `--ha-border-radius-pill` | −, +, ✕ and the day buttons |
+| `--heat-zones-input-border-radius` | `--ha-border-radius-pill` | Fields |
+| `--heat-zones-group-border-radius` | half the control height + group padding | Glass groups (concentric with their buttons) |
+| `--heat-zones-sheet-border-radius` | half the control height + sheet padding | Sheets (concentric with their fields) |
 | `--heat-zones-bar-border-radius` | `--ha-border-radius-md` | Day bars |
-| `--heat-zones-button-box-shadow` | `none` | Buttons |
 
 **Colours**
 
@@ -215,13 +226,28 @@ my_theme:
 | `--heat-zones-disabled-text-color` | `--disabled-text-color` | Disabled buttons |
 | `--heat-zones-accent-color` | `--primary-color` | Selected buttons, the day being edited, Save |
 | `--heat-zones-on-accent-color` | `--text-primary-color` | Text on the accent colour |
-| `--heat-zones-divider-color` | `--divider-color` | Borders and dividers |
-| `--heat-zones-button-background-color` | `--card-background-color` | Buttons |
+| `--heat-zones-selected-color` | 18 % of the accent colour | Tint of the selected option |
+| `--heat-zones-hover-color` | `--secondary-background-color` | Button under the pointer |
+| `--heat-zones-divider-color` | `--divider-color` | Fields and dividers |
 | `--heat-zones-input-background-color` | `--input-fill-color` | Fields |
 | `--heat-zones-track-color` | `--secondary-background-color` | Day bar without blocks |
 | `--heat-zones-heating-color` | `--state-climate-heat-color` | Current temperature while the zone heats |
 | `--heat-zones-window-color` | `--state-binary_sensor-window-on-color`, else `--info-color` | Reason line during the window pause |
 | `--heat-zones-problem-color` | `--state-binary_sensor-problem-on-color`, else `--error-color` | Problems of the zone (from `homeai_signals`) |
+
+**Glass**
+
+| Variable | Default | Used for |
+| --- | --- | --- |
+| `--heat-zones-glass-color` | `--card-background-color` | Colour of the glass material |
+| `--heat-zones-glass-opacity` | `70%` | How much of it covers what lies beneath (100% = solid) |
+| `--heat-zones-glass-blur` | `--ha-space-4` | Blur of what lies beneath |
+| `--heat-zones-glass-border-color` | `--divider-color` | Edge of the glass |
+| `--heat-zones-glass-highlight-color` | the edge mixed with `--ha-color-white` | Lit top edge |
+| `--heat-zones-glass-shadow` | `--ha-box-shadow-s` | Depth of groups, buttons and the main action |
+| `--heat-zones-sheet-shadow` | `--ha-box-shadow-m` | Depth of sheets |
+| `--heat-zones-transition-duration` | `--ha-animation-duration-fast` | Press and hover feedback |
+| `--heat-zones-press-scale` | `0.97` | Size of a control while pressed |
 
 **Schedule bars.** A block's colour is its target on a cool–warm scale: below 19.75 °C the cold colour, from
 19.75 °C the warm one, mixed into the base colour — a third of `--heat-zones-schedule-strength` next to the middle,
@@ -247,9 +273,11 @@ heat-zones-schedule-editor::part(day-bar) { border-radius: 0; }
 
 | Element | Parts (state names) |
 | --- | --- |
-| `heat-zones-card` | `card`, `header`, `title`, `temperature` (`heating`), `reason` (`window`), `problem`, `next`, `target`, `target-value`, `controls`, `button` (`active`, `primary`, `icon`), `input`, `section`, `section-title`, `message` |
-| `heat-zones-schedule-editor` | `week`, `day-label` (`selected`), `day-bar` (`selected`), `segment` (`cold`, `warm`, `unknown`), `hours`, `blocks`, `block`, `input`, `button` (`active`, `primary`, `icon`), `message` |
-| `heat-zones-overrides` | `list`, `override`, `form`, `input`, `button` (`primary`, `icon`), `message` |
+| `heat-zones-card` | `card`, `header`, `title`, `temperature` (`heating`), `reason` (`window`), `problem`, `next`, `target` (`group`, `glass`), `target-value`, `controls` (`group`, `glass`), `button` (`active`, `primary`, `icon`, `glass`), `input`, `section`, `section-title`, `message` |
+| `heat-zones-schedule-editor` | `week`, `day-label` (`selected`), `day-bar` (`selected`), `segment` (`cold`, `warm`, `unknown`), `hours`, `blocks` (`sheet`, `glass`), `sheet-title`, `block`, `input`, `button` (`active`, `primary`, `icon`), `message` |
+| `heat-zones-overrides` | `list`, `override`, `form` (`sheet`, `glass`), `input`, `button` (`primary`, `icon`, `glass`), `message` |
+
+`::part(glass)` reaches every glass surface at once, e.g. to give them a different material.
 
 ## Contract for other systems
 

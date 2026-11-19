@@ -194,7 +194,8 @@ Details:
 - **Who changed it**: states written because of a Heat Zones service carry the caller's context, and changes on the
   zone thermostat carry the context Home Assistant gives them; the integration's own changes (schedule, preheat,
   the end of an override or a hold) get a fresh context without a user. The `source` attribute (`schedule`,
-  `override`, `hold`, `manual`, `preheat`) says the same without contexts.
+  `override`, `hold`, `manual`, `preheat`) says the same without contexts: `hold` and `manual` are a person's change,
+  also a turn of the knob. `source` and `preset_temperatures` (preset → °C) are part of the contract and stay stable.
 
 Example — HomeAI knows about a trip:
 

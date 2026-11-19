@@ -11,8 +11,9 @@ Thanks for helping. A few rules keep Heat Zones usable in every home.
   presence or habits belongs to other systems, which use the contract in the README.
 - **Everything from the UI.** Settings are in the setup wizard and the zone subentry, with translations in `en`
   and `pl`.
-- **The contract is stable.** `homeai_schedule`, `homeai_plan`, `homeai_signals` and the contract services change
-  only with a new `homeai_schedule.version`.
+- **The contract is stable.** `homeai_schedule`, `homeai_plan`, `homeai_signals`, the contract services, and the
+  climate attributes other systems read — `source` (`schedule`, `override`, `hold`, `manual`, `preheat`) and
+  `preset_temperatures` — change only with a new `homeai_schedule.version`.
 - **English** for code, comments and documentation. User-facing text lives in `translations/` (entities, flows,
   services, errors) and `i18n.py` (plan titles and signals).
 

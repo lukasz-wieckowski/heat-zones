@@ -18,6 +18,7 @@ from homeassistant.config_entries import (
     SubentryFlowResult,
 )
 from homeassistant.core import callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.selector import (
     AreaSelector,
     AreaSelectorConfig,
@@ -225,7 +226,7 @@ class ZoneSubentryFlow(ConfigSubentryFlow):
                     vol.Required("name", default=default_name): TextSelector(),
                     vol.Optional("areas", default=d["areas"]): AreaSelector(AreaSelectorConfig(multiple=True)),
                     vol.Optional("thermostats", default=d["thermostats"]): EntitySelector(
-                        EntitySelectorConfig(domain="climate", multiple=True)
+                        EntitySelectorConfig(domain="climate", multiple=True, exclude_entities=self._zones())
                     ),
                     vol.Optional("windows", default=d["windows"]): EntitySelector(
                         EntitySelectorConfig(
@@ -244,6 +245,11 @@ class ZoneSubentryFlow(ConfigSubentryFlow):
             ),
             errors=errors,
         )
+
+    def _zones(self) -> list[str]:
+        """Thermostats of Heat Zones itself — a zone cannot drive another zone."""
+        registry = er.async_get(self.hass)
+        return [e.entity_id for e in registry.entities.values() if e.platform == DOMAIN and e.domain == "climate"]
 
     async def async_step_room(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         homes = area_map(self.hass)

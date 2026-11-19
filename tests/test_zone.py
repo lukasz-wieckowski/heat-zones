@@ -237,3 +237,19 @@ async def test_room_input_not_used_when_own_mode_is_chosen(hass: HomeAssistant, 
     assert hass.states.get("climate.hall").attributes["thermostats"] == [{"entity_id": trv, "mode": "own"}]
     assert home.values("select_option", "select.hall_trv_temperature_sensor_select", "option") == ["local_temperature"]
     assert home.commands("number", "set_value", "number.hall_trv_external_temperature_input") == []
+
+
+async def test_a_thermostat_belongs_to_one_zone(hass: HomeAssistant, home: Home) -> None:
+    from homeassistant.config_entries import ConfigSubentry
+
+    living, hall = home.area("Living room"), home.area("Hall")
+    trv = home.trv(living, "living_trv")
+    entry = await setup(hass, [zone("Living room", [living])])
+    data = zone("Hall", [hall], thermostats=[trv, "climate.living_room"])  # a thermostat of a zone, and a zone
+    hass.config_entries.async_add_subentry(
+        entry, ConfigSubentry(data=data["data"], subentry_type="zone", title="Hall", unique_id=None)
+    )
+    await hass.async_block_till_done()
+    await settle(hass)
+    assert [z.name for z in entry.runtime_data.zones.values()] == ["Living room"]
+    assert hass.states.get("climate.hall") is None

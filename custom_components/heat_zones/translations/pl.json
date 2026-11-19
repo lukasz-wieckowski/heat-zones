@@ -303,7 +303,7 @@
       "fields": {
         "weekly": {
           "name": "Harmonogram tygodniowy",
-          "description": "Bloki {days, time, preset_mode albo temperature}; blok trwa do następnego, także przez kolejne dni."
+          "description": "Bloki z dniami, godziną i trybem (preset_mode) albo temperaturą; blok trwa do następnego, także przez kolejne dni."
         }
       }
     },

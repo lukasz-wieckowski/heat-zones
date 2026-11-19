@@ -303,7 +303,7 @@
       "fields": {
         "weekly": {
           "name": "Weekly schedule",
-          "description": "Blocks {days, time, preset_mode or temperature}; a block lasts until the next one, across days."
+          "description": "Blocks with days, a time and a preset_mode or a temperature; a block lasts until the next one, across days."
         }
       }
     },

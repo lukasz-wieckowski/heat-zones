@@ -281,9 +281,18 @@ class HeatZones:
 
     def _zone(self, zid: str, title: str, cfg: dict[str, Any]) -> Zone | None:
         areas = [a for a in cfg.get("areas") or [] if a in self.areas]
-        thermostats = [t for t in cfg.get("thermostats") or [] if t]
+        registry = er.async_get(self.hass)
+        thermostats = [
+            t
+            for t in cfg.get("thermostats") or []
+            if t and ((e := registry.async_get(t)) is None or e.platform != DOMAIN)  # never another zone
+        ]
         if not thermostats:
             thermostats = [t for a in areas for t in self.areas[a].thermostats]
+        taken = {t.entity_id for z in self.zones.values() for t in z.trvs}
+        if used := [t for t in thermostats if t in taken]:
+            LOGGER.warning("Zone %s: %s already belong to another zone", title, ", ".join(used))
+            thermostats = [t for t in thermostats if t not in taken]
         if not thermostats:
             LOGGER.warning("Zone %s has no thermostat", title)
             return None

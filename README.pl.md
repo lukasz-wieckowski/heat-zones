@@ -146,10 +146,110 @@ show_schedule: true
 show_overrides: true
 ```
 
-Karta pokazuje strefę teraz (temperatura, cel, dlaczego, co dalej), tryby i trzymanie, edytor harmonogramu
+Karta pokazuje strefę teraz (temperatura, cel, dlaczego, co dalej, pauza przy oknie i problemy), tryby i trzymanie, edytor harmonogramu
 (dotknij dnia, zmień jego bloki, skopiuj na inne dni) i nadpisania. Edytor i lista nadpisań to też osobne
 elementy, `<heat-zones-schedule-editor>` i `<heat-zones-overrides>` (właściwości `hass` i `entity`), do użycia
-w innych kartach.
+w innych kartach. Oba idą za motywem Home Assistanta i dają się przestylować (zob.
+[Wygląd i motyw](#wygląd-i-motyw-theming)).
+
+## Wygląd i motyw (Theming)
+
+Karta i oba elementy edytora nie mają własnych kolorów, czcionek, rozmiarów, promieni, cieni ani odstępów: wszystko
+bierze z motywu Home Assistanta. Bez ustawień karta idzie za aktywnym motywem, jasnym albo ciemnym. Motyw (albo
+karta, która osadza `<heat-zones-schedule-editor>` / `<heat-zones-overrides>`) może ją przestylować zmiennymi
+poniżej, bez ruszania reszty Home Assistanta. Ustawia się je w motywie (bez początkowego `--`), na elemencie
+nadrzędnym albo na samym elemencie karty. Ramka karty (`ha-card`: tło, obramowanie, promień, cień) idzie za zwykłymi
+zmiennymi `--ha-card-*`, jak w każdej karcie.
+
+```yaml
+# themes.yaml
+moj_motyw:
+  heat-zones-accent-color: "#e0a040"
+  heat-zones-heating-color: "#ff7a1a"
+  heat-zones-button-border-radius: 6px
+  heat-zones-schedule-strength: 100%
+```
+
+**Pismo**
+
+| Zmienna | Domyślnie | Do czego |
+| --- | --- | --- |
+| `--heat-zones-font-family` | `--ha-font-family-body` | Cały tekst (następczyni `--primary-font-family` w HA) |
+| `--heat-zones-font-size` | `--ha-font-size-m` | Zwykły tekst |
+| `--heat-zones-small-font-size` | `--ha-font-size-s` | Linie drugorzędne, nazwy dni, problemy |
+| `--heat-zones-tiny-font-size` | `--ha-font-size-xs` | Napisy na paskach dni, godziny |
+| `--heat-zones-title-font-size` | `--ha-font-size-l` | Nazwa strefy, tytuły sekcji |
+| `--heat-zones-title-font-weight` | `--ha-font-weight-medium` | Tytuły, wybrane przyciski i dni, cel |
+| `--heat-zones-temperature-font-size` | `--ha-font-size-4xl` | Bieżąca temperatura |
+| `--heat-zones-temperature-font-weight` | `--ha-font-weight-light` | Bieżąca temperatura |
+| `--heat-zones-target-font-size` | `--ha-font-size-xl` | Cel między − i + |
+| `--heat-zones-line-height` | `--ha-line-height-normal` | Cały tekst |
+| `--heat-zones-condensed-line-height` | `--ha-line-height-condensed` | Bieżąca temperatura |
+
+**Odstępy i kształt**
+
+| Zmienna | Domyślnie | Do czego |
+| --- | --- | --- |
+| `--heat-zones-card-padding` | `--ha-space-4` | Wnętrze karty |
+| `--heat-zones-gap` | `--ha-space-2` | Między przyciskami, wierszami i pozycjami listy |
+| `--heat-zones-small-gap` | `--ha-space-1` | Między paskami dni, pod temperaturą |
+| `--heat-zones-section-gap` | `--ha-space-4` | Nad i pod liniami między sekcjami |
+| `--heat-zones-control-height` | `--ha-space-8` | Najmniejsza wysokość przycisków i pól |
+| `--heat-zones-control-padding` | `--ha-space-1` `--ha-space-3` | Wnętrze przycisków |
+| `--heat-zones-input-padding` | `--ha-space-1` `--ha-space-2` | Wnętrze pól i małych przycisków dni |
+| `--heat-zones-bar-height` | `--ha-space-6` | Paski dni harmonogramu |
+| `--heat-zones-border-width` | `--ha-border-width-sm` | Obramowania przycisków i pól, linie |
+| `--heat-zones-focus-width` | `--ha-border-width-md` | Obwódka edytowanego dnia |
+| `--heat-zones-button-border-radius` | `--ha-border-radius-pill` | Przyciski |
+| `--heat-zones-icon-button-border-radius` | `--ha-border-radius-md` | −, + i ✕ |
+| `--heat-zones-input-border-radius` | `--ha-border-radius-md` | Pola |
+| `--heat-zones-bar-border-radius` | `--ha-border-radius-md` | Paski dni |
+| `--heat-zones-button-box-shadow` | `none` | Przyciski |
+
+**Kolory**
+
+| Zmienna | Domyślnie | Do czego |
+| --- | --- | --- |
+| `--heat-zones-text-color` | `--primary-text-color` | Tekst |
+| `--heat-zones-secondary-text-color` | `--secondary-text-color` | Linie drugorzędne, nazwy dni, godziny |
+| `--heat-zones-disabled-text-color` | `--disabled-text-color` | Wyłączone przyciski |
+| `--heat-zones-accent-color` | `--primary-color` | Wybrane przyciski, edytowany dzień, Zapisz |
+| `--heat-zones-on-accent-color` | `--text-primary-color` | Tekst na kolorze akcentu |
+| `--heat-zones-divider-color` | `--divider-color` | Obramowania i linie |
+| `--heat-zones-button-background-color` | `--card-background-color` | Przyciski |
+| `--heat-zones-input-background-color` | `--input-fill-color` | Pola |
+| `--heat-zones-track-color` | `--secondary-background-color` | Pasek dnia bez bloków |
+| `--heat-zones-heating-color` | `--state-climate-heat-color` | Bieżąca temperatura, gdy strefa grzeje |
+| `--heat-zones-window-color` | `--state-binary_sensor-window-on-color`, inaczej `--info-color` | Linia powodu w czasie pauzy przy oknie |
+| `--heat-zones-problem-color` | `--state-binary_sensor-problem-on-color`, inaczej `--error-color` | Problemy strefy (z `homeai_signals`) |
+
+**Paski harmonogramu.** Kolor bloku to jego cel na skali chłodno–ciepło: poniżej 19,75 °C kolor zimny, od 19,75 °C
+ciepły, wmieszany w kolor bazowy — przy środku jedna trzecia `--heat-zones-schedule-strength`, w całości przy 16 °C
+i niżej albo 23 °C i wyżej (`color-mix(in srgb, odcień udział × siła, baza)`).
+
+| Zmienna | Domyślnie | Do czego |
+| --- | --- | --- |
+| `--heat-zones-cold-color` | `--state-climate-cool-color` | Chłodniejsze cele |
+| `--heat-zones-warm-color` | `--state-climate-heat-color` | Cieplejsze cele |
+| `--heat-zones-unknown-color` | `--disabled-color` | Tryb bez temperatury |
+| `--heat-zones-schedule-base-color` | `--card-background-color` | W co mieszane są kolory; linie między blokami |
+| `--heat-zones-schedule-text-color` | `--primary-text-color` | Napisy na paskach |
+| `--heat-zones-schedule-strength` | `70%` | Jak mocne są kolory na końcach skali |
+
+**Części (`::part`).** Gdzie zmienna nie wystarcza, elementy stylujesz przez `::part()`. Część może mieć też nazwę
+stanu, np. `::part(segment warm)` albo `::part(button active)`. Karta przekazuje dalej części edytorów, więc
+`heat-zones-card::part(segment)` też działa.
+
+```css
+heat-zones-card::part(title) { text-transform: uppercase; }
+heat-zones-schedule-editor::part(day-bar) { border-radius: 0; }
+```
+
+| Element | Części (nazwy stanów) |
+| --- | --- |
+| `heat-zones-card` | `card`, `header`, `title`, `temperature` (`heating`), `reason` (`window`), `problem`, `next`, `target`, `target-value`, `controls`, `button` (`active`, `primary`, `icon`), `input`, `section`, `section-title`, `message` |
+| `heat-zones-schedule-editor` | `week`, `day-label` (`selected`), `day-bar` (`selected`), `segment` (`cold`, `warm`, `unknown`), `hours`, `blocks`, `block`, `input`, `button` (`active`, `primary`, `icon`), `message` |
+| `heat-zones-overrides` | `list`, `override`, `form`, `input`, `button` (`primary`, `icon`), `message` |
 
 ## Kontrakt dla innych systemów
 

@@ -14,6 +14,7 @@ export interface HassEntityRegistry {
 
 export interface HomeAssistant {
   language: string;
+  user?: { is_admin: boolean };
   locale?: { language: string };
   states: Record<string, HassEntity>;
   entities?: Record<string, HassEntityRegistry>;
@@ -55,4 +56,15 @@ export interface Schedule {
 export interface DayBlock {
   time: string;
   value: string;
+}
+
+// One entry of the zone's `homeai_signals` attribute (already translated by the integration).
+export interface Signal {
+  id: string;
+  title: string;
+  severity: number;
+  category: string;
+  need?: string;
+  group?: string;
+  description?: string;
 }

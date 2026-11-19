@@ -146,10 +146,110 @@ show_schedule: true
 show_overrides: true
 ```
 
-It shows the zone now (temperature, target, why, what comes next), presets and holds, the weekly schedule editor
+It shows the zone now (temperature, target, why, what comes next, the window pause and problems), presets and holds, the weekly schedule editor
 (tap a day, edit its blocks, copy them to other days) and the overrides. The editor and the overrides list are
 also separate elements, `<heat-zones-schedule-editor>` and `<heat-zones-overrides>` (properties `hass` and
-`entity`), for use in other cards.
+`entity`), for use in other cards. Both follow the Home Assistant theme and can be restyled (see
+[Theming](#theming)).
+
+## Theming
+
+The card and the two editor elements have no colours, fonts, sizes, radii, shadows or spacing of their own: all of
+them come from the Home Assistant theme. Out of the box the card follows the active theme, light or dark. A theme
+(or a card that embeds `<heat-zones-schedule-editor>` / `<heat-zones-overrides>`) can restyle it with the
+variables below, without touching the rest of Home Assistant. Set them in a theme (without the leading `--`), on a
+parent element, or on the card element itself. The card frame (`ha-card`: background, border, radius, shadow)
+follows the usual `--ha-card-*` variables, like every card.
+
+```yaml
+# themes.yaml
+my_theme:
+  heat-zones-accent-color: "#e0a040"
+  heat-zones-heating-color: "#ff7a1a"
+  heat-zones-button-border-radius: 6px
+  heat-zones-schedule-strength: 100%
+```
+
+**Type**
+
+| Variable | Default | Used for |
+| --- | --- | --- |
+| `--heat-zones-font-family` | `--ha-font-family-body` | All text (HA's successor of `--primary-font-family`) |
+| `--heat-zones-font-size` | `--ha-font-size-m` | Body text |
+| `--heat-zones-small-font-size` | `--ha-font-size-s` | Secondary lines, day names, problems |
+| `--heat-zones-tiny-font-size` | `--ha-font-size-xs` | Labels on the day bars, hours |
+| `--heat-zones-title-font-size` | `--ha-font-size-l` | Zone name, section titles |
+| `--heat-zones-title-font-weight` | `--ha-font-weight-medium` | Titles, selected buttons and days, target |
+| `--heat-zones-temperature-font-size` | `--ha-font-size-4xl` | Current temperature |
+| `--heat-zones-temperature-font-weight` | `--ha-font-weight-light` | Current temperature |
+| `--heat-zones-target-font-size` | `--ha-font-size-xl` | Target between − and + |
+| `--heat-zones-line-height` | `--ha-line-height-normal` | All text |
+| `--heat-zones-condensed-line-height` | `--ha-line-height-condensed` | Current temperature |
+
+**Spacing and shape**
+
+| Variable | Default | Used for |
+| --- | --- | --- |
+| `--heat-zones-card-padding` | `--ha-space-4` | Inside the card |
+| `--heat-zones-gap` | `--ha-space-2` | Between buttons, rows and list items |
+| `--heat-zones-small-gap` | `--ha-space-1` | Between day bars, under the temperature |
+| `--heat-zones-section-gap` | `--ha-space-4` | Above and below the section dividers |
+| `--heat-zones-control-height` | `--ha-space-8` | Minimum height of buttons and fields |
+| `--heat-zones-control-padding` | `--ha-space-1` `--ha-space-3` | Inside buttons |
+| `--heat-zones-input-padding` | `--ha-space-1` `--ha-space-2` | Inside fields and the small day buttons |
+| `--heat-zones-bar-height` | `--ha-space-6` | Day bars of the schedule |
+| `--heat-zones-border-width` | `--ha-border-width-sm` | Borders of buttons and fields, dividers |
+| `--heat-zones-focus-width` | `--ha-border-width-md` | Outline of the day being edited |
+| `--heat-zones-button-border-radius` | `--ha-border-radius-pill` | Buttons |
+| `--heat-zones-icon-button-border-radius` | `--ha-border-radius-md` | −, + and ✕ |
+| `--heat-zones-input-border-radius` | `--ha-border-radius-md` | Fields |
+| `--heat-zones-bar-border-radius` | `--ha-border-radius-md` | Day bars |
+| `--heat-zones-button-box-shadow` | `none` | Buttons |
+
+**Colours**
+
+| Variable | Default | Used for |
+| --- | --- | --- |
+| `--heat-zones-text-color` | `--primary-text-color` | Text |
+| `--heat-zones-secondary-text-color` | `--secondary-text-color` | Secondary lines, day names, hours |
+| `--heat-zones-disabled-text-color` | `--disabled-text-color` | Disabled buttons |
+| `--heat-zones-accent-color` | `--primary-color` | Selected buttons, the day being edited, Save |
+| `--heat-zones-on-accent-color` | `--text-primary-color` | Text on the accent colour |
+| `--heat-zones-divider-color` | `--divider-color` | Borders and dividers |
+| `--heat-zones-button-background-color` | `--card-background-color` | Buttons |
+| `--heat-zones-input-background-color` | `--input-fill-color` | Fields |
+| `--heat-zones-track-color` | `--secondary-background-color` | Day bar without blocks |
+| `--heat-zones-heating-color` | `--state-climate-heat-color` | Current temperature while the zone heats |
+| `--heat-zones-window-color` | `--state-binary_sensor-window-on-color`, else `--info-color` | Reason line during the window pause |
+| `--heat-zones-problem-color` | `--state-binary_sensor-problem-on-color`, else `--error-color` | Problems of the zone (from `homeai_signals`) |
+
+**Schedule bars.** A block's colour is its target on a cool–warm scale: below 19.75 °C the cold colour, from
+19.75 °C the warm one, mixed into the base colour — a third of `--heat-zones-schedule-strength` next to the middle,
+all of it at 16 °C and below or 23 °C and above (`color-mix(in srgb, tone share × strength, base)`).
+
+| Variable | Default | Used for |
+| --- | --- | --- |
+| `--heat-zones-cold-color` | `--state-climate-cool-color` | Cooler targets |
+| `--heat-zones-warm-color` | `--state-climate-heat-color` | Warmer targets |
+| `--heat-zones-unknown-color` | `--disabled-color` | A preset without a temperature |
+| `--heat-zones-schedule-base-color` | `--card-background-color` | What the colours are mixed into; lines between blocks |
+| `--heat-zones-schedule-text-color` | `--primary-text-color` | Labels on the bars |
+| `--heat-zones-schedule-strength` | `70%` | How strong the colours get at the ends of the scale |
+
+**Parts.** Where a variable is not enough, style the elements with `::part()`. A part can carry a state name as
+well, e.g. `::part(segment warm)` or `::part(button active)`. The card passes on the parts of the editors, so
+`heat-zones-card::part(segment)` works too.
+
+```css
+heat-zones-card::part(title) { text-transform: uppercase; }
+heat-zones-schedule-editor::part(day-bar) { border-radius: 0; }
+```
+
+| Element | Parts (state names) |
+| --- | --- |
+| `heat-zones-card` | `card`, `header`, `title`, `temperature` (`heating`), `reason` (`window`), `problem`, `next`, `target`, `target-value`, `controls`, `button` (`active`, `primary`, `icon`), `input`, `section`, `section-title`, `message` |
+| `heat-zones-schedule-editor` | `week`, `day-label` (`selected`), `day-bar` (`selected`), `segment` (`cold`, `warm`, `unknown`), `hours`, `blocks`, `block`, `input`, `button` (`active`, `primary`, `icon`), `message` |
+| `heat-zones-overrides` | `list`, `override`, `form`, `input`, `button` (`primary`, `icon`), `message` |
 
 ## Contract for other systems
 

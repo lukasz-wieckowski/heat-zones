@@ -43,6 +43,19 @@ const TEXTS: Record<string, Record<string, string>> = {
     show_controls: "Show controls",
     show_schedule: "Show schedule",
     show_overrides: "Show overrides",
+    today: "Today",
+    settings: "Settings",
+    done: "Done",
+    heating: "Heating",
+    measure_at: "Measure at",
+    "measure.average": "Average of the rooms",
+    "measure.coldest": "Coldest room",
+    current: "Manual changes",
+    hold_help: "A manual change lasts until the next change in the schedule. Here you can keep it longer.",
+    turn_on: "Turn heating on",
+    from_time: "From {time}: {what}",
+    schedule_paused: "Schedule off",
+    schedule_empty: "No schedule yet",
   },
   pl: {
     schedule: "Harmonogram",
@@ -87,6 +100,19 @@ const TEXTS: Record<string, Record<string, string>> = {
     show_controls: "Pokaż sterowanie",
     show_schedule: "Pokaż harmonogram",
     show_overrides: "Pokaż nadpisania",
+    today: "Dziś",
+    settings: "Ustawienia",
+    done: "Gotowe",
+    heating: "Ogrzewanie",
+    measure_at: "Gdzie mierzyć",
+    "measure.average": "Średnio z pokoi",
+    "measure.coldest": "Najzimniejszy pokój",
+    current: "Ręczne zmiany",
+    hold_help: "Ręczna zmiana trwa do najbliższej zmiany w harmonogramie. Tu możesz ją przedłużyć.",
+    turn_on: "Włącz ogrzewanie",
+    from_time: "Od {time}: {what}",
+    schedule_paused: "Harmonogram wyłączony",
+    schedule_empty: "Brak harmonogramu",
   },
 };
 
@@ -95,8 +121,9 @@ export function lang(hass: { language?: string; locale?: { language: string } } 
   return l in TEXTS ? l : "en";
 }
 
-export function t(language: string, key: string): string {
-  return TEXTS[language]?.[key] ?? TEXTS.en[key] ?? key;
+export function t(language: string, key: string, values: Record<string, string> = {}): string {
+  const text = TEXTS[language]?.[key] ?? TEXTS.en[key] ?? key;
+  return text.replace(/\{(\w+)\}/g, (_, name: string) => values[name] ?? "");
 }
 
 export function presetName(language: string, preset: string): string {

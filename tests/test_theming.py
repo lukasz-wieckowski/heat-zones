@@ -19,13 +19,17 @@ LITERAL_DEFAULTS = {
     "--heat-zones-schedule-strength": "70%",
     "--heat-zones-glass-opacity": "70%",
     "--heat-zones-press-scale": "0.97",
+    "--heat-zones-sheet-opacity": "92%",
 }
 # Values with numbers allowed outside the token block: layout, not looks.
 ALLOWED_NUMBERS = {
     "flex": {"1", "1 1 20ch", "1 1 auto"},
     "grid-column": {"2"},
     "min-width": {"6ch"},
-    "width": {"8ch"},
+    "width": {"8ch", "100%", "min(100%, 72ch)"},
+    "max-width": {"60%"},
+    "max-height": {"92dvh"},
+    "height": {"100%"},
 }
 ALLOWED_COLUMNS = {"max-content 1fr", "auto 1fr"}
 COLOUR = re.compile(
@@ -94,7 +98,8 @@ def test_no_fixed_looks_outside_the_tokens() -> None:
         for block in css_blocks(text):
             for prop, value in declarations(block):
                 stripped = re.sub(r"var\(--[\w-]+", "", value)
-                if value == "0" or not NUMBER.search(stripped):
+                stripped = re.sub(r"(?<![\w.])0(?![\w.%])", "", stripped)  # a bare zero is no look of its own
+                if not NUMBER.search(stripped):
                     continue
                 if prop == "grid-template-columns":
                     assert value in ALLOWED_COLUMNS, (name, prop, value)

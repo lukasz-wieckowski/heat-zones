@@ -1,5 +1,5 @@
 // The weekly schedule as the editor sees it: blocks per day, back to the service format, and day bars.
-import type { Block, Day, DayBlock } from "./types";
+import type { Block, Day, DayBlock, Schedule } from "./types";
 
 export const DAYS: Day[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
@@ -71,6 +71,34 @@ export function dayBars(days: Record<Day, DayBlock[]>, day: Day): Bar[] {
   }
   bars.push({ from, to: 24 * 60, value });
   return bars;
+}
+
+// Today as the zone will run it: the day's schedule (when it is on) with today's overrides painted over it.
+export function todayBars(schedule: Schedule, now: Date): Bar[] {
+  const day = DAYS[(now.getDay() + 6) % 7];
+  let bars = schedule.enabled && schedule.weekly.length ? dayBars(byDay(schedule.weekly), day) : [];
+  const midnight = new Date(now);
+  midnight.setHours(0, 0, 0, 0);
+  for (const o of schedule.overrides) {
+    const from = Math.max(0, (new Date(o.start).getTime() - midnight.getTime()) / 60000);
+    const to = Math.min(24 * 60, (new Date(o.end).getTime() - midnight.getTime()) / 60000);
+    if (to > from) bars = paint(bars, from, to, valueOf(o));
+  }
+  return bars;
+}
+
+function paint(bars: Bar[], from: number, to: number, value: string): Bar[] {
+  const out: Bar[] = [];
+  for (const b of bars) {
+    if (b.to <= from || b.from >= to) {
+      out.push(b);
+      continue;
+    }
+    if (b.from < from) out.push({ ...b, to: from });
+    if (b.to > to) out.push({ ...b, from: to });
+  }
+  out.push({ from, to, value });
+  return out.sort((a, b) => a.from - b.from);
 }
 
 export function temperatureOf(value: string, presets: Record<string, number>): number | null {

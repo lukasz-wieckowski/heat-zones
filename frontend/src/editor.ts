@@ -41,6 +41,8 @@ function label(language: string, value: string): string {
 export class HeatZonesScheduleEditor extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property() entity = "";
+  // Inside a sheet (as in the card) the day being edited is an inset panel rather than a glass sheet of its own.
+  @property({ type: Boolean, reflect: true }) inset = false;
   @state() private schedule: Schedule | null = null;
   @state() private draft: Record<Day, DayBlock[]> | null = null;
   @state() private day: Day | null = null;
@@ -242,7 +244,10 @@ export class HeatZonesScheduleEditor extends LitElement {
     const temps = presets(this.hass, this.entity);
     const options = this.hass.states[this.entity]?.attributes.preset_modes?.filter((p: string) => p !== "none") ?? [];
     const day = this.day;
-    return html`<div class="blocks glass sheet" part="blocks sheet glass">
+    return html`<div
+      class="blocks ${this.inset ? "inset" : "glass sheet"}"
+      part=${parts("blocks", this.inset ? "inset" : "sheet", !this.inset && "glass")}
+    >
       <h3 part="sheet-title">${t(language, "edit_day")}: ${t(language, `day.${day}`)}</h3>
       ${this.draft[day].map(
         (b, i) => html`<div class="block" part="block">
@@ -319,6 +324,8 @@ export class HeatZonesScheduleEditor extends LitElement {
 export class HeatZonesOverrides extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property() entity = "";
+  // Inside a sheet the form is an inset panel and the buttons are not glass (no glass on glass).
+  @property({ type: Boolean, reflect: true }) inset = false;
   @state() private schedule: Schedule | null = null;
   @state() private adding = false;
   @state() private from = "";
@@ -405,12 +412,12 @@ export class HeatZonesOverrides extends LitElement {
               (o) => html`<li class="row" part="override">
                 <span class="grow">
                   <strong>${o.preset_mode ? presetName(language, o.preset_mode) : degrees(language, o.temperature)}</strong>
-                  ${o.reason ? html` · ${o.reason}` : nothing}
-                  <div class="muted">${clock(language, o.start)} – ${clock(language, o.end)}${o.source ? ` · ${o.source}` : ""}</div>
+                  ${o.reason ? html`<div>${o.reason}</div>` : nothing}
+                  <div class="muted">${clock(language, o.start)} – ${clock(language, o.end)}${o.source ? ` (${o.source})` : ""}</div>
                 </span>
                 <button
-                  class="icon glass"
-                  part="button icon glass"
+                  class="icon ${this.inset ? "" : "glass"}"
+                  part=${parts("button", "icon", !this.inset && "glass")}
                   @click=${() => this.removeOverride(o.override_id)}
                   title=${t(language, "remove")}
                 >
@@ -421,7 +428,10 @@ export class HeatZonesOverrides extends LitElement {
           </ul>`
         : html`<div class="muted" part="message">${t(language, "no_overrides")}</div>`}
       ${this.adding
-        ? html`<div class="form glass sheet" part="form sheet glass">
+        ? html`<div
+            class="form ${this.inset ? "inset" : "glass sheet"}"
+            part=${parts("form", this.inset ? "inset" : "sheet", !this.inset && "glass")}
+          >
             <span>${t(language, "from")}</span>
             <input type="datetime-local" part="input" .value=${this.from} @change=${(e: Event) => (this.from = (e.target as HTMLInputElement).value)} />
             <span>${t(language, "to")}</span>
@@ -453,7 +463,9 @@ export class HeatZonesOverrides extends LitElement {
             </div>
           </div>`
         : html`<div class="row spaced">
-            <button class="glass" part="button glass" @click=${this.open}>＋ ${t(language, "add_override")}</button>
+            <button class=${this.inset ? "" : "glass"} part=${parts("button", !this.inset && "glass")} @click=${this.open}>
+              ＋ ${t(language, "add_override")}
+            </button>
           </div>`}
       ${this.message ? html`<div class="muted spaced" part="message">${this.message}</div>` : nothing}
     `;

@@ -1,0 +1,20 @@
+{
+  "name": "heat-zones-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Heat Zones card and schedule editor for Home Assistant",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "lit": "3.3.3"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2"
+  }
+}

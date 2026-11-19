@@ -1,0 +1,415 @@
+// The weekly schedule editor and the overrides list — reusable elements: the Heat Zones card uses them, and any
+// other card can embed <heat-zones-schedule-editor> or <heat-zones-overrides> with `hass` and `entity`.
+import { LitElement, css, html, nothing } from "lit";
+import { property, state } from "lit/decorators.js";
+import { element } from "./define";
+import { clock, degrees, lang, presetName, t } from "./i18n";
+import {
+  DAYS,
+  blockValue,
+  byDay,
+  color,
+  dayBars,
+  localInput,
+  temperatureOf,
+  textColor,
+  toWeekly,
+} from "./schedule";
+import { shared } from "./styles";
+import type { Day, DayBlock, HomeAssistant, Schedule } from "./types";
+
+export async function fetchSchedule(hass: HomeAssistant, entity: string): Promise<Schedule | null> {
+  const result = await hass.callWS<{ response: Record<string, Schedule> }>({
+    type: "call_service",
+    domain: "heat_zones",
+    service: "get_schedule",
+    target: { entity_id: entity },
+    return_response: true,
+  });
+  return result.response?.[entity] ?? null;
+}
+
+function presets(hass: HomeAssistant, entity: string): Record<string, number> {
+  return (hass.states[entity]?.attributes.preset_temperatures ?? {}) as Record<string, number>;
+}
+
+function label(language: string, value: string): string {
+  if (value.startsWith("t:")) return degrees(language, Number(value.slice(2)));
+  return presetName(language, value);
+}
+
+@element("heat-zones-schedule-editor")
+export class HeatZonesScheduleEditor extends LitElement {
+  @property({ attribute: false }) hass!: HomeAssistant;
+  @property() entity = "";
+  @state() private schedule: Schedule | null = null;
+  @state() private draft: Record<Day, DayBlock[]> | null = null;
+  @state() private day: Day | null = null;
+  @state() private copyTo: Day[] = [];
+  @state() private message = "";
+  private loadedFor = "";
+  private stamp = "";
+
+  static styles = [
+    shared,
+    css`
+      .week {
+        display: grid;
+        grid-template-columns: 2.6em 1fr;
+        gap: 6px 8px;
+        align-items: center;
+      }
+      .day {
+        font-size: 0.9em;
+        color: var(--hz-muted);
+        cursor: pointer;
+      }
+      .day.selected {
+        color: var(--hz-accent);
+        font-weight: 600;
+      }
+      .bar {
+        position: relative;
+        height: 22px;
+        border-radius: 6px;
+        overflow: hidden;
+        background: var(--secondary-background-color, rgba(127, 127, 127, 0.1));
+        cursor: pointer;
+      }
+      .bar.selected {
+        outline: 2px solid var(--hz-accent);
+      }
+      .segment {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7em;
+        white-space: nowrap;
+        overflow: hidden;
+        border-right: 1px solid rgba(255, 255, 255, 0.4);
+        box-sizing: border-box;
+      }
+      .hours {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.7em;
+        color: var(--hz-muted);
+        grid-column: 2;
+      }
+      .blocks {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .copy button {
+        padding: 4px 8px;
+        min-height: 28px;
+      }
+    `,
+  ];
+
+  updated(): void {
+    const st = this.hass?.states[this.entity];
+    if (!st) return;
+    // reload after a change of the zone, but never under the user's hands
+    const stamp = st.last_updated;
+    if (!this.draft && (this.loadedFor !== this.entity || stamp !== this.stamp)) {
+      this.loadedFor = this.entity;
+      this.stamp = stamp;
+      fetchSchedule(this.hass, this.entity).then(
+        (s) => (this.schedule = s),
+        () => (this.schedule = null),
+      );
+    }
+  }
+
+  private get days(): Record<Day, DayBlock[]> {
+    return this.draft ?? byDay(this.schedule?.weekly ?? []);
+  }
+
+  private edit(day: Day): void {
+    if (!this.draft) this.draft = byDay(this.schedule?.weekly ?? []);
+    this.day = day;
+    this.copyTo = [];
+    this.message = "";
+  }
+
+  private change(index: number, patch: Partial<DayBlock>): void {
+    if (!this.draft || !this.day) return;
+    const list = this.draft[this.day].map((b, i) => (i === index ? { ...b, ...patch } : b));
+    this.draft = { ...this.draft, [this.day]: list };
+  }
+
+  private add(): void {
+    if (!this.draft || !this.day) return;
+    const list = this.draft[this.day];
+    const last = list[list.length - 1];
+    const next = last ? `${String(Math.min(23, Number(last.time.slice(0, 2)) + 2)).padStart(2, "0")}:00` : "06:00";
+    this.draft = { ...this.draft, [this.day]: [...list, { time: next, value: "comfort" }] };
+  }
+
+  private removeBlock(index: number): void {
+    if (!this.draft || !this.day) return;
+    this.draft = { ...this.draft, [this.day]: this.draft[this.day].filter((_, i) => i !== index) };
+  }
+
+  private toggleCopy(day: Day): void {
+    this.copyTo = this.copyTo.includes(day) ? this.copyTo.filter((d) => d !== day) : [...this.copyTo, day];
+  }
+
+  private cancel(): void {
+    this.draft = null;
+    this.day = null;
+    this.copyTo = [];
+  }
+
+  private async save(): Promise<void> {
+    if (!this.draft) return;
+    const days = { ...this.draft };
+    if (this.day) {
+      const source = [...days[this.day]].sort((a, b) => a.time.localeCompare(b.time));
+      days[this.day] = source;
+      for (const d of this.copyTo) days[d] = source.map((b) => ({ ...b }));
+    }
+    try {
+      await this.hass.callService("heat_zones", "set_schedule", { weekly: toWeekly(days) }, { entity_id: this.entity });
+      this.message = t(lang(this.hass), "saved");
+      this.draft = null;
+      this.day = null;
+      this.copyTo = [];
+      this.stamp = "";
+      this.requestUpdate();
+    } catch (err) {
+      this.message = `${t(lang(this.hass), "error")}: ${(err as Error).message ?? err}`;
+    }
+  }
+
+  private renderBar(day: Day) {
+    const language = lang(this.hass);
+    const temps = presets(this.hass, this.entity);
+    const bars = dayBars(this.days, day);
+    return html`<div class="bar ${this.day === day ? "selected" : ""}" @click=${() => this.edit(day)}>
+      ${bars.map((b) => {
+        const temp = temperatureOf(b.value, temps);
+        const left = (b.from / 1440) * 100;
+        const width = ((b.to - b.from) / 1440) * 100;
+        const text = width > 9 ? label(language, b.value) : "";
+        return html`<div
+          class="segment"
+          style="left:${left}%;width:${width}%;background:${color(temp)};color:${textColor(temp)}"
+          title="${label(language, b.value)} ${temp !== null ? degrees(language, temp) : ""}"
+        >${text}</div>`;
+      })}
+    </div>`;
+  }
+
+  private renderDay() {
+    if (!this.draft || !this.day) return nothing;
+    const language = lang(this.hass);
+    const temps = presets(this.hass, this.entity);
+    const options = this.hass.states[this.entity]?.attributes.preset_modes?.filter((p: string) => p !== "none") ?? [];
+    const day = this.day;
+    return html`<div class="blocks">
+      ${this.draft[day].map(
+        (b, i) => html`<div class="row">
+          <input type="time" .value=${b.time} @change=${(e: Event) => this.change(i, { time: (e.target as HTMLInputElement).value })} />
+          <select
+            @change=${(e: Event) => {
+              const v = (e.target as HTMLSelectElement).value;
+              this.change(i, { value: v === "t" ? `t:${temps.comfort ?? 21}` : v });
+            }}
+          >
+            ${options.map(
+              (p: string) => html`<option value=${p} ?selected=${b.value === p}>${presetName(language, p)}</option>`,
+            )}
+            <option value="t" ?selected=${b.value.startsWith("t:")}>${t(language, "temperature")}</option>
+          </select>
+          ${b.value.startsWith("t:")
+            ? html`<input
+                type="number"
+                min="5"
+                max="30"
+                step="0.5"
+                .value=${String(blockValue(b.value).temperature)}
+                @change=${(e: Event) => this.change(i, { value: `t:${(e.target as HTMLInputElement).value}` })}
+              />`
+            : html`<span class="muted">${degrees(language, temps[b.value])}</span>`}
+          <span class="grow"></span>
+          <button class="icon" @click=${() => this.removeBlock(i)} title=${t(language, "remove")}>✕</button>
+        </div>`,
+      )}
+      <div class="row"><button @click=${this.add}>＋ ${t(language, "add_block")}</button></div>
+      <div class="row copy">
+        <span class="muted">${t(language, "copy_to")}:</span>
+        ${DAYS.filter((d) => d !== day).map(
+          (d) => html`<button class=${this.copyTo.includes(d) ? "active" : ""} @click=${() => this.toggleCopy(d)}>
+            ${t(language, `day.${d}`)}
+          </button>`,
+        )}
+      </div>
+      <div class="row">
+        <button class="primary" @click=${this.save}>${t(language, "save")}</button>
+        <button @click=${this.cancel}>${t(language, "cancel")}</button>
+      </div>
+    </div>`;
+  }
+
+  render() {
+    if (!this.hass || !this.hass.states[this.entity]) return nothing;
+    const language = lang(this.hass);
+    const empty = !(this.schedule?.weekly.length ?? 0) && !this.draft;
+    return html`
+      <div class="week">
+        ${DAYS.map(
+          (d) => html`<div class="day ${this.day === d ? "selected" : ""}" @click=${() => this.edit(d)}>
+              ${t(language, `day.${d}`)}
+            </div>
+            ${this.renderBar(d)}`,
+        )}
+        <div class="hours"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+      </div>
+      ${empty ? html`<div class="muted" style="margin-top:8px">${t(language, "no_blocks")}</div>` : nothing}
+      ${this.renderDay()}
+      ${this.message ? html`<div class="muted" style="margin-top:8px">${this.message}</div>` : nothing}
+    `;
+  }
+}
+
+@element("heat-zones-overrides")
+export class HeatZonesOverrides extends LitElement {
+  @property({ attribute: false }) hass!: HomeAssistant;
+  @property() entity = "";
+  @state() private schedule: Schedule | null = null;
+  @state() private adding = false;
+  @state() private from = "";
+  @state() private to = "";
+  @state() private value = "away";
+  @state() private reason = "";
+  @state() private message = "";
+  private loadedFor = "";
+  private stamp = "";
+
+  static styles = [
+    shared,
+    css`
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .form {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 8px;
+        align-items: center;
+        margin-top: 8px;
+      }
+    `,
+  ];
+
+  updated(): void {
+    const st = this.hass?.states[this.entity];
+    if (!st) return;
+    if (this.loadedFor !== this.entity || st.last_updated !== this.stamp) {
+      this.loadedFor = this.entity;
+      this.stamp = st.last_updated;
+      fetchSchedule(this.hass, this.entity).then(
+        (s) => (this.schedule = s),
+        () => (this.schedule = null),
+      );
+    }
+  }
+
+  private open(): void {
+    const now = new Date();
+    this.from = localInput(now);
+    this.to = localInput(new Date(now.getTime() + 3 * 3600 * 1000));
+    this.adding = true;
+    this.message = "";
+  }
+
+  private async add(): Promise<void> {
+    const data: Record<string, unknown> = {
+      start: new Date(this.from).toISOString(),
+      end: new Date(this.to).toISOString(),
+      reason: this.reason,
+      source: "card",
+      ...blockValue(this.value),
+    };
+    try {
+      await this.hass.callService("heat_zones", "add_override", data, { entity_id: this.entity });
+      this.adding = false;
+      this.reason = "";
+      this.stamp = "";
+    } catch (err) {
+      this.message = `${t(lang(this.hass), "error")}: ${(err as Error).message ?? err}`;
+    }
+  }
+
+  private removeOverride(id: string): void {
+    this.hass.callService("heat_zones", "remove_override", { override_id: id }, { entity_id: this.entity });
+  }
+
+  render() {
+    if (!this.hass || !this.hass.states[this.entity]) return nothing;
+    const language = lang(this.hass);
+    const overrides = this.schedule?.overrides ?? [];
+    const options = this.hass.states[this.entity].attributes.preset_modes?.filter((p: string) => p !== "none") ?? [];
+    return html`
+      ${overrides.length
+        ? html`<ul>
+            ${overrides.map(
+              (o) => html`<li class="row">
+                <span class="grow">
+                  <strong>${o.preset_mode ? presetName(language, o.preset_mode) : degrees(language, o.temperature)}</strong>
+                  ${o.reason ? html` · ${o.reason}` : nothing}
+                  <div class="muted">${clock(language, o.start)} – ${clock(language, o.end)}${o.source ? ` · ${o.source}` : ""}</div>
+                </span>
+                <button class="icon" @click=${() => this.removeOverride(o.override_id)} title=${t(language, "remove")}>✕</button>
+              </li>`,
+            )}
+          </ul>`
+        : html`<div class="muted">${t(language, "no_overrides")}</div>`}
+      ${this.adding
+        ? html`<div class="form">
+            <span>${t(language, "from")}</span>
+            <input type="datetime-local" .value=${this.from} @change=${(e: Event) => (this.from = (e.target as HTMLInputElement).value)} />
+            <span>${t(language, "to")}</span>
+            <input type="datetime-local" .value=${this.to} @change=${(e: Event) => (this.to = (e.target as HTMLInputElement).value)} />
+            <span></span>
+            <div class="row">
+              <select @change=${(e: Event) => (this.value = (e.target as HTMLSelectElement).value)}>
+                ${options.map((p: string) => html`<option value=${p} ?selected=${this.value === p}>${presetName(language, p)}</option>`)}
+                <option value="t:21" ?selected=${this.value.startsWith("t:")}>${t(language, "temperature")}</option>
+              </select>
+              ${this.value.startsWith("t:")
+                ? html`<input
+                    type="number"
+                    min="5"
+                    max="30"
+                    step="0.5"
+                    .value=${this.value.slice(2)}
+                    @change=${(e: Event) => (this.value = `t:${(e.target as HTMLInputElement).value}`)}
+                  />`
+                : nothing}
+            </div>
+            <span>${t(language, "reason")}</span>
+            <input .value=${this.reason} maxlength="200" @input=${(e: Event) => (this.reason = (e.target as HTMLInputElement).value)} />
+            <span></span>
+            <div class="row">
+              <button class="primary" @click=${this.add}>${t(language, "save")}</button>
+              <button @click=${() => (this.adding = false)}>${t(language, "cancel")}</button>
+            </div>
+          </div>`
+        : html`<div class="row" style="margin-top:8px"><button @click=${this.open}>＋ ${t(language, "add_override")}</button></div>`}
+      ${this.message ? html`<div class="muted">${this.message}</div>` : nothing}
+    `;
+  }
+}

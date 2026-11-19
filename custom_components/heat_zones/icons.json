@@ -1,0 +1,92 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "window_pause": {
+        "default": "mdi:window-closed-variant",
+        "state": {
+          "on": "mdi:window-open-variant"
+        }
+      }
+    },
+    "climate": {
+      "zone": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "comfort": "mdi:sofa",
+              "eco": "mdi:leaf",
+              "sleep": "mdi:weather-night",
+              "away": "mdi:bag-suitcase",
+              "none": "mdi:hand-back-right-outline"
+            },
+            "default": "mdi:thermostat"
+          }
+        }
+      }
+    },
+    "number": {
+      "valve_limit": {
+        "default": "mdi:valve"
+      }
+    },
+    "select": {
+      "measure_at": {
+        "default": "mdi:map-marker-radius"
+      }
+    },
+    "sensor": {
+      "next_change": {
+        "default": "mdi:calendar-clock"
+      },
+      "heating_rate": {
+        "default": "mdi:thermometer-chevron-up"
+      },
+      "cooling_rate": {
+        "default": "mdi:thermometer-chevron-down"
+      },
+      "heating_power": {
+        "default": "mdi:radiator"
+      },
+      "model_confidence": {
+        "default": "mdi:brain"
+      },
+      "room_samples": {
+        "default": "mdi:home-thermometer-outline"
+      }
+    },
+    "switch": {
+      "schedule": {
+        "default": "mdi:calendar-week",
+        "state": {
+          "off": "mdi:calendar-remove"
+        }
+      }
+    }
+  },
+  "services": {
+    "add_override": {
+      "service": "mdi:calendar-plus"
+    },
+    "remove_override": {
+      "service": "mdi:calendar-remove"
+    },
+    "get_schedule": {
+      "service": "mdi:calendar-search"
+    },
+    "set_schedule": {
+      "service": "mdi:calendar-edit"
+    },
+    "estimate": {
+      "service": "mdi:timer-sand"
+    },
+    "reset_learning": {
+      "service": "mdi:restore"
+    },
+    "hold": {
+      "service": "mdi:pause-circle-outline"
+    },
+    "resume": {
+      "service": "mdi:play-circle-outline"
+    }
+  }
+}

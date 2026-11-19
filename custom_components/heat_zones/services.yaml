@@ -1,0 +1,117 @@
+add_override:
+  target:
+    entity:
+      integration: heat_zones
+      domain: climate
+  fields:
+    start:
+      selector:
+        datetime:
+    end:
+      required: true
+      selector:
+        datetime:
+    preset_mode:
+      example: away
+      selector:
+        text:
+    temperature:
+      selector:
+        number:
+          min: 5
+          max: 30
+          step: 0.5
+          unit_of_measurement: "°C"
+    reason:
+      example: Trip to the mountains
+      selector:
+        text:
+    source:
+      example: homeai
+      selector:
+        text:
+    override_id:
+      selector:
+        text:
+
+remove_override:
+  target:
+    entity:
+      integration: heat_zones
+      domain: climate
+  fields:
+    override_id:
+      selector:
+        text:
+    source:
+      example: homeai
+      selector:
+        text:
+
+get_schedule:
+  target:
+    entity:
+      integration: heat_zones
+      domain: climate
+
+set_schedule:
+  target:
+    entity:
+      integration: heat_zones
+      domain: climate
+  fields:
+    weekly:
+      required: true
+      example: '[{"days": ["mon", "tue", "wed", "thu", "fri"], "time": "06:30", "preset_mode": "comfort"}, {"days": ["mon", "tue", "wed", "thu", "fri"], "time": "22:30", "preset_mode": "sleep"}]'
+      selector:
+        object:
+
+estimate:
+  target:
+    entity:
+      integration: heat_zones
+      domain: climate
+  fields:
+    temperature:
+      required: true
+      selector:
+        number:
+          min: 5
+          max: 30
+          step: 0.5
+          unit_of_measurement: "°C"
+
+reset_learning:
+  target:
+    entity:
+      integration: heat_zones
+      domain: climate
+
+hold:
+  target:
+    entity:
+      integration: heat_zones
+      domain: climate
+  fields:
+    preset_mode:
+      selector:
+        text:
+    temperature:
+      selector:
+        number:
+          min: 5
+          max: 30
+          step: 0.5
+          unit_of_measurement: "°C"
+    until:
+      selector:
+        datetime:
+    permanent:
+      selector:
+        boolean:
+
+resume:
+  target:
+    entity:
+      integration: heat_zones
+      domain: climate

@@ -1,0 +1,351 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Heat Zones",
+        "description": "Heat Zones drives your thermostats by the temperature in the rooms, with a weekly schedule. Areas with a thermostat: {areas}.",
+        "data": {
+          "outdoor_sensor": "Outdoor temperature sensor",
+          "weather": "Weather",
+          "create_zones": "Create a zone for every area with a thermostat"
+        },
+        "data_description": {
+          "outdoor_sensor": "Optional. Helps the thermal model; without it the weather entity is used.",
+          "weather": "Optional. Its hourly forecast helps preheating. Empty: the best weather entity is chosen.",
+          "create_zones": "Zones can be added, joined and changed later under the integration."
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Heat Zones is already set up. Add zones under the integration."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Heat Zones options",
+        "data": {
+          "outdoor_sensor": "Outdoor temperature sensor",
+          "weather": "Weather",
+          "heating_start": "Heating start"
+        },
+        "data_description": {
+          "outdoor_sensor": "Optional. Helps the thermal model; without it the weather entity is used.",
+          "weather": "Optional. Its hourly forecast helps preheating. Empty: the best weather entity is chosen.",
+          "heating_start": "Optional. The day the heating season started: cooling of the rooms is learned from the nights before it (long-term statistics), so preheating is accurate from the first day."
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "zone": {
+      "initiate_flow": {
+        "user": "Add zone",
+        "reconfigure": "Change zone"
+      },
+      "entry_type": "Zone",
+      "step": {
+        "zone": {
+          "title": "Zone",
+          "description": "A zone is one or more rooms without doors between them, heated by one or more thermostats.",
+          "data": {
+            "name": "Name",
+            "areas": "Rooms",
+            "thermostats": "Thermostats",
+            "windows": "Windows and doors",
+            "window_pause": "Pause heating while a window is open",
+            "window_delay": "Window open for at least"
+          },
+          "data_description": {
+            "areas": "Home Assistant areas of the zone.",
+            "thermostats": "Empty: every thermostat in the rooms.",
+            "windows": "Empty: every window and door sensor in the rooms."
+          }
+        },
+        "room": {
+          "title": "{room} ({number}/{count})",
+          "description": "The temperature sensor of {room} and an optional limit: the zone never heats this room above it.",
+          "data": {
+            "sensor": "Temperature sensor",
+            "limit": "Limit"
+          },
+          "data_description": {
+            "sensor": "Empty: the area's temperature sensor, or one found in the room.",
+            "limit": "For example a living room that should not get warmer than 23.5 °C while the zone measures in the hall."
+          }
+        },
+        "presets": {
+          "title": "Presets",
+          "description": "Temperatures of the presets. Own presets, one per line, e.g. `Shower: 24`.",
+          "data": {
+            "comfort": "Comfort",
+            "eco": "Eco",
+            "sleep": "Sleep",
+            "away": "Away",
+            "custom_presets": "Own presets"
+          }
+        },
+        "control": {
+          "title": "Control",
+          "description": "How the thermostats are driven. The defaults suit most homes.",
+          "data": {
+            "control_mode": "Thermostat control",
+            "offset_max": "Largest target correction",
+            "optimum_start": "Preheat before scheduled blocks",
+            "preheat_max": "Start preheating at most",
+            "external_inputs": "Room temperature inputs",
+            "sensor_selects": "Sensor selections",
+            "valve_limits": "Valve opening limits"
+          },
+          "data_description": {
+            "control_mode": "Automatic: the room temperature goes to thermostats with a room sensor input (e.g. SONOFF TRVZB); other thermostats get a corrected target.",
+            "offset_max": "For thermostats without a room sensor input: the target is corrected by the difference between their thermometer and the room, at most this much.",
+            "optimum_start": "Heating for a warmer block starts early enough to reach it on time, from the learned thermal model.",
+            "external_inputs": "Only when not found automatically: the number entities that take the room temperature.",
+            "sensor_selects": "Only when not found automatically: the select entities that choose the thermostat's sensor.",
+            "valve_limits": "Only when not found automatically: the number entities that limit the valve opening."
+          }
+        }
+      },
+      "error": {
+        "no_areas": "Choose at least one room, or thermostats placed in rooms.",
+        "no_thermostats": "There is no thermostat in these rooms. Choose thermostats.",
+        "invalid_presets": "Write one preset per line: a name, a colon and a temperature from 5 to 30 °C. Names must differ from the standard presets and from each other."
+      },
+      "abort": {
+        "reconfigure_successful": "The zone has been changed."
+      }
+    }
+  },
+  "selector": {
+    "control_mode": {
+      "options": {
+        "auto": "Automatic",
+        "room_sensor": "Room temperature to the thermostat's sensor input",
+        "offset": "Corrected target",
+        "own": "Thermostat's own thermometer"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "problem": {
+        "name": "Problem"
+      },
+      "window_pause": {
+        "name": "Window pause"
+      }
+    },
+    "climate": {
+      "zone": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "none": "Manual",
+              "comfort": "Comfort",
+              "eco": "Eco",
+              "sleep": "Sleep",
+              "away": "Away"
+            }
+          }
+        }
+      }
+    },
+    "number": {
+      "valve_limit": {
+        "name": "Valve limit"
+      }
+    },
+    "select": {
+      "measure_at": {
+        "name": "Measure at",
+        "state": {
+          "average": "Average",
+          "coldest": "Coldest room"
+        }
+      }
+    },
+    "sensor": {
+      "next_change": {
+        "name": "Next change"
+      },
+      "heating_rate": {
+        "name": "Heating rate"
+      },
+      "cooling_rate": {
+        "name": "Cooling rate"
+      },
+      "heating_power": {
+        "name": "Heating power"
+      },
+      "model_confidence": {
+        "name": "Model confidence"
+      },
+      "room_samples": {
+        "name": "Room samples"
+      }
+    },
+    "switch": {
+      "schedule": {
+        "name": "Schedule"
+      }
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "Heat Zones is not running."
+    },
+    "no_target": {
+      "message": "Choose at least one Heat Zones thermostat."
+    },
+    "not_a_zone": {
+      "message": "{entity_id} is not a Heat Zones thermostat."
+    },
+    "preset_or_temperature": {
+      "message": "Give either a preset or a temperature."
+    },
+    "until_or_permanent": {
+      "message": "Give either an end time or permanent, not both."
+    },
+    "invalid_period": {
+      "message": "The end must be in the future and after the start."
+    },
+    "period_too_long": {
+      "message": "An override may last at most {days} days."
+    },
+    "unknown_preset": {
+      "message": "Unknown preset {preset}. Available: {presets}."
+    },
+    "id_or_source": {
+      "message": "Give either an override ID or a source."
+    },
+    "schedule_invalid_schedule": {
+      "message": "The schedule must be a list of blocks ({detail})."
+    },
+    "schedule_too_many_blocks": {
+      "message": "Too many blocks in the schedule ({detail})."
+    },
+    "schedule_invalid_days": {
+      "message": "Days are mon, tue, wed, thu, fri, sat and sun ({detail})."
+    },
+    "schedule_invalid_time": {
+      "message": "A time is written as HH:MM ({detail})."
+    },
+    "schedule_preset_or_temperature": {
+      "message": "Every block needs either a preset or a temperature ({detail})."
+    },
+    "schedule_unknown_preset": {
+      "message": "Unknown preset in the schedule: {detail}."
+    },
+    "schedule_invalid_temperature": {
+      "message": "Temperatures in the schedule are from 5 to 30 °C ({detail})."
+    },
+    "schedule_duplicate_block": {
+      "message": "Two blocks start at the same time ({detail})."
+    }
+  },
+  "services": {
+    "add_override": {
+      "name": "Add override",
+      "description": "Holds a preset or a temperature from a start to an end, above the schedule. It disappears by itself.",
+      "fields": {
+        "start": {
+          "name": "Start",
+          "description": "Default: now."
+        },
+        "end": {
+          "name": "End",
+          "description": "When the schedule takes over again."
+        },
+        "preset_mode": {
+          "name": "Preset",
+          "description": "A preset of the zone, e.g. away. Either a preset or a temperature."
+        },
+        "temperature": {
+          "name": "Temperature",
+          "description": "Either a preset or a temperature."
+        },
+        "reason": {
+          "name": "Reason",
+          "description": "Shown in the plan and on the card."
+        },
+        "source": {
+          "name": "Source",
+          "description": "Who added it, e.g. homeai; all overrides of a source can be removed at once."
+        },
+        "override_id": {
+          "name": "Override ID",
+          "description": "An override with the same ID is replaced. Default: a new ID."
+        }
+      }
+    },
+    "remove_override": {
+      "name": "Remove override",
+      "description": "Removes an override by its ID, or all overrides from a source. Without a target: in every zone.",
+      "fields": {
+        "override_id": {
+          "name": "Override ID",
+          "description": "The ID returned by add override."
+        },
+        "source": {
+          "name": "Source",
+          "description": "Removes every override from this source."
+        }
+      }
+    },
+    "get_schedule": {
+      "name": "Get schedule",
+      "description": "Returns the weekly schedule and the overrides of the zones. Without a target: every zone."
+    },
+    "set_schedule": {
+      "name": "Set schedule",
+      "description": "Replaces the weekly schedule of the zones.",
+      "fields": {
+        "weekly": {
+          "name": "Weekly schedule",
+          "description": "Blocks {days, time, preset_mode or temperature}; a block lasts until the next one, across days."
+        }
+      }
+    },
+    "estimate": {
+      "name": "Estimate",
+      "description": "How many minutes the zone needs to reach a temperature, and how sure the model is.",
+      "fields": {
+        "temperature": {
+          "name": "Temperature",
+          "description": "The temperature to reach."
+        }
+      }
+    },
+    "reset_learning": {
+      "name": "Reset learning",
+      "description": "Forgets room differences, heating rate and the thermal model of the zones."
+    },
+    "hold": {
+      "name": "Hold",
+      "description": "Holds a target until the next change, until a time or permanently (until resumed).",
+      "fields": {
+        "preset_mode": {
+          "name": "Preset",
+          "description": "Default: the current target."
+        },
+        "temperature": {
+          "name": "Temperature",
+          "description": "Default: the current target."
+        },
+        "until": {
+          "name": "Until",
+          "description": "Hold until this time."
+        },
+        "permanent": {
+          "name": "Permanent",
+          "description": "Hold until resumed; the schedule is paused."
+        }
+      }
+    },
+    "resume": {
+      "name": "Resume schedule",
+      "description": "Ends a manual hold — the zone follows the schedule and overrides again."
+    }
+  }
+}

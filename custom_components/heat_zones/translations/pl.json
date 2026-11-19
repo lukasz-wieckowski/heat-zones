@@ -1,0 +1,351 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Strefy ciepła",
+        "description": "Strefy ciepła sterują głowicami według temperatury w pokojach, z harmonogramem tygodniowym. Obszary z termostatem: {areas}.",
+        "data": {
+          "outdoor_sensor": "Czujnik temperatury na dworze",
+          "weather": "Pogoda",
+          "create_zones": "Utwórz strefę dla każdego obszaru z termostatem"
+        },
+        "data_description": {
+          "outdoor_sensor": "Opcjonalnie. Pomaga modelowi cieplnemu; bez niego liczy się encja pogody.",
+          "weather": "Opcjonalnie. Prognoza godzinowa pomaga w nagrzewaniu na zapas. Puste: wybór najlepszej encji pogody.",
+          "create_zones": "Strefy można później dodawać, łączyć i zmieniać w integracji."
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Strefy ciepła są już skonfigurowane. Strefy dodaje się w integracji."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcje Stref ciepła",
+        "data": {
+          "outdoor_sensor": "Czujnik temperatury na dworze",
+          "weather": "Pogoda",
+          "heating_start": "Początek sezonu grzewczego"
+        },
+        "data_description": {
+          "outdoor_sensor": "Opcjonalnie. Pomaga modelowi cieplnemu; bez niego liczy się encja pogody.",
+          "weather": "Opcjonalnie. Prognoza godzinowa pomaga w nagrzewaniu na zapas. Puste: wybór najlepszej encji pogody.",
+          "heating_start": "Opcjonalnie. Dzień, od którego grzejesz: stygnięcie pokoi liczy się z nocy przed nim (statystyki długoterminowe), więc nagrzewanie na zapas jest dokładne od pierwszego dnia."
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "zone": {
+      "initiate_flow": {
+        "user": "Dodaj strefę",
+        "reconfigure": "Zmień strefę"
+      },
+      "entry_type": "Strefa",
+      "step": {
+        "zone": {
+          "title": "Strefa",
+          "description": "Strefa to jeden albo kilka pokoi bez drzwi między sobą, grzanych jedną albo kilkoma głowicami.",
+          "data": {
+            "name": "Nazwa",
+            "areas": "Pokoje",
+            "thermostats": "Termostaty",
+            "windows": "Okna i drzwi",
+            "window_pause": "Wstrzymuj grzanie przy otwartym oknie",
+            "window_delay": "Okno otwarte co najmniej"
+          },
+          "data_description": {
+            "areas": "Obszary Home Assistanta należące do strefy.",
+            "thermostats": "Puste: wszystkie termostaty w tych pokojach.",
+            "windows": "Puste: wszystkie czujniki okien i drzwi w tych pokojach."
+          }
+        },
+        "room": {
+          "title": "{room} ({number}/{count})",
+          "description": "Czujnik temperatury: {room} i opcjonalna granica — strefa nigdy nie grzeje tego pokoju ponad nią.",
+          "data": {
+            "sensor": "Czujnik temperatury",
+            "limit": "Granica"
+          },
+          "data_description": {
+            "sensor": "Puste: czujnik temperatury ustawiony w obszarze albo znaleziony w pokoju.",
+            "limit": "Na przykład salon, który ma nie być cieplejszy niż 23,5 °C, gdy strefa mierzy w przedpokoju."
+          }
+        },
+        "presets": {
+          "title": "Tryby",
+          "description": "Temperatury trybów. Własne tryby, jeden w linii, np. `Prysznic: 24`.",
+          "data": {
+            "comfort": "Komfort",
+            "eco": "Eko",
+            "sleep": "Sen",
+            "away": "Poza domem",
+            "custom_presets": "Własne tryby"
+          }
+        },
+        "control": {
+          "title": "Sterowanie",
+          "description": "Jak strefa steruje głowicami. Domyślne ustawienia pasują do większości domów.",
+          "data": {
+            "control_mode": "Sterowanie głowicami",
+            "offset_max": "Największa poprawka celu",
+            "optimum_start": "Nagrzewaj na zapas przed blokami harmonogramu",
+            "preheat_max": "Zaczynaj nagrzewać najwyżej",
+            "external_inputs": "Wejścia temperatury pokoju",
+            "sensor_selects": "Wybór czujnika",
+            "valve_limits": "Limity otwarcia zaworu"
+          },
+          "data_description": {
+            "control_mode": "Automatycznie: temperatura pokoju idzie do głowic z wejściem czujnika (np. SONOFF TRVZB), pozostałe dostają poprawiony cel.",
+            "offset_max": "Dla głowic bez wejścia czujnika: cel poprawiany o różnicę między ich termometrem a pokojem, najwyżej o tyle.",
+            "optimum_start": "Grzanie na cieplejszy blok zaczyna się na tyle wcześnie, żeby zdążyć na czas — z wyuczonego modelu cieplnego.",
+            "external_inputs": "Tylko gdy nie znalazły się same: encje number, które przyjmują temperaturę pokoju.",
+            "sensor_selects": "Tylko gdy nie znalazły się same: encje select, które wybierają czujnik głowicy.",
+            "valve_limits": "Tylko gdy nie znalazły się same: encje number, które ograniczają otwarcie zaworu."
+          }
+        }
+      },
+      "error": {
+        "no_areas": "Wybierz co najmniej jeden pokój albo termostaty przypisane do pokoi.",
+        "no_thermostats": "W tych pokojach nie ma termostatu. Wybierz termostaty.",
+        "invalid_presets": "Jeden tryb w linii: nazwa, dwukropek i temperatura od 5 do 30 °C. Nazwy muszą różnić się od trybów standardowych i od siebie."
+      },
+      "abort": {
+        "reconfigure_successful": "Strefa została zmieniona."
+      }
+    }
+  },
+  "selector": {
+    "control_mode": {
+      "options": {
+        "auto": "Automatycznie",
+        "room_sensor": "Temperatura pokoju na wejście czujnika głowicy",
+        "offset": "Poprawiony cel",
+        "own": "Własny termometr głowicy"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "problem": {
+        "name": "Problem"
+      },
+      "window_pause": {
+        "name": "Pauza przy oknie"
+      }
+    },
+    "climate": {
+      "zone": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "none": "Ręcznie",
+              "comfort": "Komfort",
+              "eco": "Eko",
+              "sleep": "Sen",
+              "away": "Poza domem"
+            }
+          }
+        }
+      }
+    },
+    "number": {
+      "valve_limit": {
+        "name": "Limit zaworu"
+      }
+    },
+    "select": {
+      "measure_at": {
+        "name": "Gdzie ma być ciepło",
+        "state": {
+          "average": "Średnio",
+          "coldest": "Najzimniejszy pokój"
+        }
+      }
+    },
+    "sensor": {
+      "next_change": {
+        "name": "Następna zmiana"
+      },
+      "heating_rate": {
+        "name": "Tempo nagrzewania"
+      },
+      "cooling_rate": {
+        "name": "Stygnięcie"
+      },
+      "heating_power": {
+        "name": "Moc grzania"
+      },
+      "model_confidence": {
+        "name": "Pewność modelu"
+      },
+      "room_samples": {
+        "name": "Próbki pokoi"
+      }
+    },
+    "switch": {
+      "schedule": {
+        "name": "Harmonogram"
+      }
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "Strefy ciepła nie działają."
+    },
+    "no_target": {
+      "message": "Wybierz co najmniej jeden termostat Stref ciepła."
+    },
+    "not_a_zone": {
+      "message": "{entity_id} nie jest termostatem Stref ciepła."
+    },
+    "preset_or_temperature": {
+      "message": "Podaj tryb albo temperaturę."
+    },
+    "until_or_permanent": {
+      "message": "Podaj koniec albo „na stałe”, nie oba."
+    },
+    "invalid_period": {
+      "message": "Koniec musi być w przyszłości i po początku."
+    },
+    "period_too_long": {
+      "message": "Nadpisanie może trwać najwyżej {days} dni."
+    },
+    "unknown_preset": {
+      "message": "Nieznany tryb {preset}. Dostępne: {presets}."
+    },
+    "id_or_source": {
+      "message": "Podaj identyfikator nadpisania albo źródło."
+    },
+    "schedule_invalid_schedule": {
+      "message": "Harmonogram to lista bloków ({detail})."
+    },
+    "schedule_too_many_blocks": {
+      "message": "Za dużo bloków w harmonogramie ({detail})."
+    },
+    "schedule_invalid_days": {
+      "message": "Dni to mon, tue, wed, thu, fri, sat i sun ({detail})."
+    },
+    "schedule_invalid_time": {
+      "message": "Godzina w formacie GG:MM ({detail})."
+    },
+    "schedule_preset_or_temperature": {
+      "message": "Każdy blok potrzebuje trybu albo temperatury ({detail})."
+    },
+    "schedule_unknown_preset": {
+      "message": "Nieznany tryb w harmonogramie: {detail}."
+    },
+    "schedule_invalid_temperature": {
+      "message": "Temperatury w harmonogramie od 5 do 30 °C ({detail})."
+    },
+    "schedule_duplicate_block": {
+      "message": "Dwa bloki zaczynają się o tej samej porze ({detail})."
+    }
+  },
+  "services": {
+    "add_override": {
+      "name": "Dodaj nadpisanie",
+      "description": "Trzyma tryb albo temperaturę od początku do końca, ponad harmonogramem. Znika samo.",
+      "fields": {
+        "start": {
+          "name": "Początek",
+          "description": "Domyślnie: teraz."
+        },
+        "end": {
+          "name": "Koniec",
+          "description": "Kiedy harmonogram wraca."
+        },
+        "preset_mode": {
+          "name": "Tryb",
+          "description": "Tryb strefy, np. away. Tryb albo temperatura."
+        },
+        "temperature": {
+          "name": "Temperatura",
+          "description": "Tryb albo temperatura."
+        },
+        "reason": {
+          "name": "Powód",
+          "description": "Widać go w planie i na karcie."
+        },
+        "source": {
+          "name": "Źródło",
+          "description": "Kto je dodał, np. homeai; nadpisania jednego źródła można usunąć naraz."
+        },
+        "override_id": {
+          "name": "Identyfikator",
+          "description": "Nadpisanie o tym samym identyfikatorze zostaje zastąpione. Domyślnie: nowy identyfikator."
+        }
+      }
+    },
+    "remove_override": {
+      "name": "Usuń nadpisanie",
+      "description": "Usuwa nadpisanie po identyfikatorze albo wszystkie nadpisania jednego źródła. Bez celu: we wszystkich strefach.",
+      "fields": {
+        "override_id": {
+          "name": "Identyfikator",
+          "description": "Identyfikator zwrócony przez dodanie nadpisania."
+        },
+        "source": {
+          "name": "Źródło",
+          "description": "Usuwa wszystkie nadpisania z tego źródła."
+        }
+      }
+    },
+    "get_schedule": {
+      "name": "Pobierz harmonogram",
+      "description": "Zwraca harmonogram tygodniowy i nadpisania stref. Bez celu: wszystkie strefy."
+    },
+    "set_schedule": {
+      "name": "Ustaw harmonogram",
+      "description": "Zastępuje harmonogram tygodniowy stref.",
+      "fields": {
+        "weekly": {
+          "name": "Harmonogram tygodniowy",
+          "description": "Bloki {days, time, preset_mode albo temperature}; blok trwa do następnego, także przez kolejne dni."
+        }
+      }
+    },
+    "estimate": {
+      "name": "Oszacuj",
+      "description": "Ile minut strefa potrzebuje do danej temperatury i jak pewny jest model.",
+      "fields": {
+        "temperature": {
+          "name": "Temperatura",
+          "description": "Temperatura do osiągnięcia."
+        }
+      }
+    },
+    "reset_learning": {
+      "name": "Nauka od nowa",
+      "description": "Zapomina różnice między pokojami, tempo nagrzewania i model cieplny stref."
+    },
+    "hold": {
+      "name": "Trzymaj",
+      "description": "Trzyma cel do następnej zmiany, do godziny albo na stałe (do wznowienia).",
+      "fields": {
+        "preset_mode": {
+          "name": "Tryb",
+          "description": "Domyślnie: obecny cel."
+        },
+        "temperature": {
+          "name": "Temperatura",
+          "description": "Domyślnie: obecny cel."
+        },
+        "until": {
+          "name": "Do",
+          "description": "Trzymaj do tej chwili."
+        },
+        "permanent": {
+          "name": "Na stałe",
+          "description": "Trzymaj do wznowienia; harmonogram stoi."
+        }
+      }
+    },
+    "resume": {
+      "name": "Wznów harmonogram",
+      "description": "Kończy ręczne trzymanie — strefa znów idzie za harmonogramem i nadpisaniami."
+    }
+  }
+}

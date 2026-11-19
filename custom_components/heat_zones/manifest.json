@@ -1,0 +1,15 @@
+{
+  "domain": "heat_zones",
+  "name": "Heat Zones",
+  "after_dependencies": ["frontend", "recorder", "weather"],
+  "codeowners": ["@lukasz-wieckowski"],
+  "config_flow": true,
+  "dependencies": ["http"],
+  "documentation": "https://github.com/lukasz-wieckowski/heat-zones",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/lukasz-wieckowski/heat-zones/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "1.0.0"
+}

@@ -272,9 +272,11 @@ async def test_estimate_and_reset_learning(hass: HomeAssistant, zones: dict, fre
     assert engine.zones[zid].state["learning"] == {}
 
 
-async def test_signals_and_plan_format(hass: HomeAssistant, home: Home, zones: dict) -> None:
+async def test_signals_and_plan_format(hass: HomeAssistant, home: Home, zones: dict, freezer: Any) -> None:
     home.set_temperature(zones["bedroom"], None)
     await settle(hass)
+    assert hass.states.get(BEDROOM).attributes["homeai_signals"] == []  # a short gap (a restart) is no signal
+    await tick(hass, freezer, times=3)
     st = hass.states.get(BEDROOM)
     (signal,) = st.attributes["homeai_signals"]
     assert set(signal) <= {"id", "title", "severity", "category", "description", "need", "group"}

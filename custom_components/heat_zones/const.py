@@ -20,6 +20,9 @@ CARD_FILE = "heat-zones-card.js"
 TICK = timedelta(minutes=5)  # controller and learning
 REFRESH_SENT = timedelta(minutes=30)  # a thermostat gets the room reading at least this often, even unchanged
 STALE = timedelta(hours=2)  # a sensor silent for longer is not used
+# a device gone or a room without a reading for longer is a problem; shorter gaps (a restart of Home Assistant or
+# Zigbee2MQTT) change nothing
+OUTAGE = timedelta(minutes=15)
 ECHO = 30.0  # s: a thermostat change this soon after our command is our echo, not a hand on the knob
 RETRY_AFTER = 300.0  # s: a command the thermostat did not take is repeated after this long
 RELOAD_AFTER = 10.0  # s: after registry changes (new thermostat, other area)

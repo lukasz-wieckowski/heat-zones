@@ -101,12 +101,21 @@ async def test_window_pause(hass: HomeAssistant, home: Home, freezer: Any) -> No
     assert hass.states.get("binary_sensor.living_area_window_pause").state == "off"
 
 
-async def test_silent_sensors_fall_back_to_own_thermometer(hass: HomeAssistant, home: Home) -> None:
+async def test_silent_sensors_fall_back_to_own_thermometer(hass: HomeAssistant, home: Home, freezer: Any) -> None:
     entry, e = await living_area(hass, home)
     for key in ("living", "kitchen", "hall"):
         home.set_temperature(e[key], None)
     home.thermostat(e["trv"], current_temperature=21.5)  # by its own thermometer now
     await settle(hass)
+    # a short gap is not a problem yet: the thermostat keeps the room sensor
+    a = hass.states.get(LIVING).attributes
+    assert a["problem"] is None
+    assert a["homeai_signals"] == []
+    assert hass.states.get("binary_sensor.living_area_problem").state == "off"
+    assert home.values("select_option", "select.living_trv_temperature_sensor_select", "option") == [
+        "remote_temperature"
+    ]
+    await tick(hass, freezer, times=3)  # 15 minutes without a room reading: the sensors are lost
     a = hass.states.get(LIVING).attributes
     assert a["problem"] == "sensor"
     assert a["current_temperature"] == 21.5  # the thermostat's own thermometer
@@ -116,6 +125,28 @@ async def test_silent_sensors_fall_back_to_own_thermometer(hass: HomeAssistant, 
     assert hass.states.get("binary_sensor.living_area_problem").state == "on"
     titles = [s["id"] for s in a["homeai_signals"]]
     assert "heat_zones_" + entry.runtime_data.zones[next(iter(entry.runtime_data.zones))].id + "_sensor_hall" in titles
+
+
+async def test_sensors_without_a_value_at_start_are_not_a_problem(hass: HomeAssistant, home: Home) -> None:
+    """After a restart sensors have no value for a moment (Zigbee2MQTT, templates before Home Assistant starts)."""
+    living = home.area("Living room")
+    home.trv(living, "living_trv", target=21.0, current=21.5)
+    sensor = home.sensor(living, "living", None)
+    await setup(hass, [zone("Living area", [living])])
+    a = hass.states.get(LIVING).attributes
+    assert a["problem"] is None
+    assert a["homeai_signals"] == []
+    assert hass.states.get("binary_sensor.living_area_problem").state == "off"
+    # the thermostat is left as it is — not switched to its own thermometer for a few seconds
+    assert home.values("select_option", "select.living_trv_temperature_sensor_select", "option") == []
+    home.set_temperature(sensor, 20.5)
+    await settle(hass)
+    assert hass.states.get(LIVING).attributes["current_temperature"] == 20.5
+    assert home.values("set_value", "number.living_trv_external_temperature_input", "value") == [20.5]
+    assert home.values("select_option", "select.living_trv_temperature_sensor_select", "option") == [
+        "remote_temperature"
+    ]
+    assert hass.states.get("binary_sensor.living_area_problem").state == "off"
 
 
 async def test_knob_change_is_a_manual_change(hass: HomeAssistant, home: Home, freezer: Any) -> None:
@@ -217,6 +248,23 @@ async def test_thermostat_without_room_input_gets_a_corrected_target(
     home.thermostat(trv, temperature=22.0)
     await settle(hass)
     assert hass.states.get("climate.bedroom").attributes["temperature"] == 21.0
+
+
+async def test_short_sensor_gap_keeps_the_corrected_target(hass: HomeAssistant, home: Home, freezer: Any) -> None:
+    bedroom = home.area("Bedroom")
+    trv = home.trv(bedroom, "bedroom_trv", room_input=False, valve=False, current=22.0, target=20.0)
+    sensor = home.sensor(bedroom, "bedroom", 20.0)
+    await setup(hass, [zone("Bedroom", [bedroom], offset_max=1.5)])
+    await hass.services.async_call(
+        "climate", "set_temperature", {"entity_id": "climate.bedroom", "temperature": 20}, blocking=True
+    )
+    assert home.values("set_temperature", trv, "temperature")[-1] == 21.5
+    home.set_temperature(sensor, None)  # e.g. Zigbee2MQTT restarts
+    await settle(hass)
+    assert home.values("set_temperature", trv, "temperature")[-1] == 21.5  # the correction stays
+    await tick(hass, freezer, times=3)
+    assert home.values("set_temperature", trv, "temperature")[-1] == 20.0  # lost: the plain zone target
+    assert hass.states.get("climate.bedroom").attributes["problem"] == "sensor"
 
 
 async def test_thermostat_with_own_mode_and_auto_hvac(hass: HomeAssistant, home: Home) -> None:

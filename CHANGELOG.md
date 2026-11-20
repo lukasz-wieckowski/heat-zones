@@ -20,6 +20,9 @@
   *Resume schedule* appears next to the reason while a manual change is held.
 - The card shows times in the user's Home Assistant time format (12 or 24 hours), presets that wrap fill their rows,
   and the override form labels its target. A zone's device model is in Home Assistant's language.
+- A room without a reading is a problem only after 15 minutes, like unavailable thermostats. Sensors that have no
+  value for a moment after a restart of Home Assistant or Zigbee2MQTT no longer switch the problem sensor on, send a
+  signal or move the thermostats to their own thermometers; a corrected target keeps its correction meanwhile.
 - README in English and Polish with screenshots from a clean Home Assistant, a user manual, automation examples and
   a FAQ; `scripts/demo` builds the demo home and takes the screenshots.
 

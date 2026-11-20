@@ -70,6 +70,7 @@ from .const import (
     NEAR_TARGET,
     OFFSET_MAX,
     OFFSET_SMOOTHING,
+    OUTAGE,
     PLAN_MAX,
     PREHEAT_LIMIT,
     PREHEAT_MAX,
@@ -177,6 +178,7 @@ class Zone:
     segments: list[Segment] = field(default_factory=list)
     signals: list[dict[str, Any]] = field(default_factory=list)
     unavailable_since: datetime | None = None
+    room_missing_since: datetime | None = None  # no reading from any room since
 
     @property
     def preset_modes(self) -> list[str]:
@@ -919,10 +921,18 @@ class HeatZones:
         # the room temperature for thermostats: the measuring point, raised by rooms approaching their limit
         z.fed, z.limited_by, z.problem = None, None, None
         needs_room = any(t.mode != MODE_OWN for t in z.trvs)
+        # without a room reading for OUTAGE the sensors are lost: thermostats go to their own thermometers and the
+        # zone reports it; a shorter gap (sensors without a value yet after a restart) leaves the thermostats as
+        # they are
+        lost = False
         if z.current_room is None:
-            if needs_room:
+            now = dt_util.utcnow()
+            z.room_missing_since = z.room_missing_since or now
+            lost = now - z.room_missing_since >= OUTAGE
+            if needs_room and lost:
                 z.problem = "sensor"
         else:
+            z.room_missing_since = None
             fed = z.current_room
             for a, limit in z.limits.items():
                 t = z.temperatures.get(a)
@@ -945,8 +955,10 @@ class HeatZones:
                     z.problem = "thermostat"  # self-repair does not help — the guard reports it
                 if z.fed is not None and trv.external_input:
                     await self._feed(trv, z.fed, force=repair)
-                if trv.sensor_select:
+                if trv.sensor_select and (z.fed is not None or lost):
                     await self._select(trv, SENSOR_EXTERNAL if z.fed is not None else SENSOR_LOCAL, force=repair)
+            elif trv.mode == MODE_OFFSET and z.fed is None and not lost:
+                setpoint = target + trv.applied  # the correction stays until the room has a reading again
             elif trv.mode == MODE_OFFSET and z.fed is not None:
                 own = number(st.attributes.get("current_temperature"))
                 if own is not None and (learn or trv.offset is None):
@@ -1198,7 +1210,7 @@ class HeatZones:
 
         if not self.available(z):
             z.unavailable_since = z.unavailable_since or now
-            if now - z.unavailable_since >= timedelta(minutes=15):
+            if now - z.unavailable_since >= OUTAGE:
                 z.problem = z.problem or "unavailable"
                 when = i18n.since(self.hass, z.unavailable_since, now)
                 signal(
@@ -1285,6 +1297,8 @@ class HeatZones:
             if not sensor or (st := self.hass.states.get(sensor)) is None:
                 continue
             if st.state in UNAVAILABLE:
+                if dt_util.utcnow() - st.last_changed < OUTAGE:
+                    continue  # no value yet after a restart, or a short gap
                 since = dt_util.as_local(st.last_changed)
             elif dt_util.utcnow() - (report := last_report(self.hass, sensor) or st.last_reported) > STALE:
                 since = dt_util.as_local(report)

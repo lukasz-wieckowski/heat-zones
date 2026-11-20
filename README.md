@@ -189,8 +189,9 @@ Escape key or a tap outside it.
 ## How a zone works
 
 **Measuring point.** `select.<zone>_measure_at`: a room, `average` or `coldest`. If the chosen room's sensor is
-silent the zone uses the other rooms; with no room reading at all the thermostats fall back to their own
-thermometers and the zone reports a problem.
+silent the zone uses the other rooms; with no room reading at all for 15 minutes the thermostats fall back to
+their own thermometers and the zone reports a problem. A shorter gap, such as sensors without a value for a moment
+after a restart of Home Assistant or Zigbee2MQTT, changes nothing.
 
 **Thermostat control** (per thermostat, *automatic* by default):
 
@@ -559,8 +560,9 @@ the schedule. Keep it with **⋯ → Hold permanently** or **Hold until**, or tu
 the integration's options to learn from the history before the installation; *Start preheating at most* in the
 zone's Control step caps how early it starts. `sensor.<zone>_model_confidence` shows how sure the model is.
 
-**The problem sensor is on.** The zone's `problem` attribute says what: `sensor` (no room reading), `thermostat` (a
-thermostat does not use the room sensor and self-repair did not help) or `unavailable` (thermostats unavailable);
+**The problem sensor is on.** The zone's `problem` attribute says what: `sensor` (no room reading for 15 minutes),
+`thermostat` (a thermostat does not use the room sensor and self-repair did not help) or `unavailable` (thermostats
+unavailable for 15 minutes);
 `homeai_signals` has a readable title. Administrators see the same on the card.
 
 **The card is missing from the card picker.** The integration serves and registers the card itself; after

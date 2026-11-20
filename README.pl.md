@@ -190,8 +190,9 @@ Escape albo dotknięcie poza nim.
 ## Jak działa strefa
 
 **Punkt pomiaru.** `select.<strefa>_measure_at`: pokój, `average` (średnio) albo `coldest` (najzimniejszy). Gdy
-czujnik wybranego pokoju milczy, strefa bierze pozostałe pokoje; bez żadnego odczytu z pokoi głowice wracają na
-własne termometry, a strefa zgłasza problem.
+czujnik wybranego pokoju milczy, strefa bierze pozostałe pokoje; gdy przez 15 minut nie ma żadnego odczytu z pokoi,
+głowice wracają na własne termometry, a strefa zgłasza problem. Krótsza przerwa, np. czujniki chwilę bez wartości
+po restarcie Home Assistanta albo Zigbee2MQTT, niczego nie zmienia.
 
 **Sterowanie głowicami** (dla każdej głowicy, domyślnie *automatycznie*):
 
@@ -566,9 +567,9 @@ w harmonogramie. Zatrzymaj ją przez **⋯ → Trzymaj na stałe** albo **Trzyma
 najwyżej* w kroku Sterowanie strefy ogranicza, jak wcześnie może zacząć. `sensor.<strefa>_model_confidence`
 pokazuje, jak pewny jest model.
 
-**Czujnik problemu jest włączony.** Atrybut `problem` strefy mówi, co jest nie tak: `sensor` (brak odczytu z pokoi),
-`thermostat` (głowica nie korzysta z czujnika pokoju, a samonaprawa nie pomogła) albo `unavailable` (głowice
-niedostępne); `homeai_signals` ma czytelny tytuł. Administratorzy widzą to samo na karcie.
+**Czujnik problemu jest włączony.** Atrybut `problem` strefy mówi, co jest nie tak: `sensor` (od 15 minut brak odczytu z
+pokoi), `thermostat` (głowica nie korzysta z czujnika pokoju, a samonaprawa nie pomogła) albo `unavailable` (głowice
+niedostępne od 15 minut); `homeai_signals` ma czytelny tytuł. Administratorzy widzą to samo na karcie.
 
 **Karty nie ma na liście kart.** Integracja sama udostępnia i rejestruje kartę; po instalacji albo aktualizacji
 odśwież stronę (w aplikacji Companion: wyczyść jej pamięć podręczną interfejsu). Nie trzeba dodawać zasobu.

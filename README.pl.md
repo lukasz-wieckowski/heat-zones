@@ -1,37 +1,65 @@
-# Strefy ciepła (Heat Zones)
+# Heat Zones
 
-[English](README.md)
+[English](README.md) · **Polski**
 
-Heat Zones zamienia głowice termostatyczne w Twoich pokojach w **strefy ciepła, które rozumieją pokoje**,
-z **harmonogramem tygodniowym** jak w programowalnym termostacie. Strefa to jeden albo kilka pokoi (obszarów Home
-Assistanta) grzanych jedną albo kilkoma głowicami. Wybierasz, gdzie ma być ciepło — w jednym pokoju, średnio albo
-w najzimniejszym pokoju — a strefa tak steruje głowicami, żeby właśnie *tam* była temperatura docelowa.
+Strefy ciepła z harmonogramem tygodniowym dla [Home Assistanta](https://www.home-assistant.io/), które rozumieją
+pokoje. Strefa to jeden albo kilka pokoi (obszarów Home Assistanta) grzanych jedną albo kilkoma głowicami.
+Wybierasz, gdzie strefa mierzy (jeden pokój, średnio albo najzimniejszy pokój), a ona tak steruje każdą głowicą,
+żeby właśnie *tam* była temperatura docelowa, idzie za swoim tygodniem jak programowalny termostat i zaczyna grzać
+na tyle wcześnie, żeby było ciepło na czas. Bez chmury i bez AI: Heat Zones to termostat, a systemy takie jak
+[HomeAI](https://github.com/lukasz-wieckowski/homeai) sterują nim jak termostatem.
 
-- **Temperatura z pokoju do głowicy**: głowice z wejściem czujnika pokoju (SONOFF TRVZB / TRV-ZBT i inne) dostają
-  temperaturę z pokoju; głowice bez takiego wejścia dostają cel poprawiony o różnicę między ich termometrem
+![Karty Heat Zones na pulpicie Home Assistanta](docs/images/pl/01-dashboard.jpg)
+
+<sub>Wszystkie zrzuty pochodzą z czystego Home Assistanta 2026.11 z domem demonstracyjnym (wirtualne głowice,
+czujniki w pokojach i okna) i Heat Zones 1.0, który stawia [`scripts/demo`](scripts/demo/demo.mjs). Wyżej: część
+dzienna grzeje, bo ktoś pracuje z domu, sypialnia czeka, bo okno jest otwarte, a łazienka trzyma temperaturę
+prysznica do 12:30.</sub>
+
+## Spis treści
+
+- [Co robi Heat Zones](#co-robi-heat-zones)
+- [Wymagania](#wymagania)
+- [Instalacja](#instalacja)
+- [Pierwsza konfiguracja](#pierwsza-konfiguracja)
+- [Instrukcja](#instrukcja):
+  [Karta](#karta) · [Harmonogram](#harmonogram) · [Nadpisania](#nadpisania) ·
+  [Ręczne zmiany i trzymanie](#ręczne-zmiany-i-trzymanie) · [Ustawienia](#ustawienia) ·
+  [Na telefonie](#na-telefonie)
+- [Jak działa strefa](#jak-działa-strefa)
+- [Encje](#encje)
+- [Usługi i automatyzacje](#usługi-i-automatyzacje)
+- [Wygląd i motyw (Theming)](#wygląd-i-motyw-theming)
+- [Kontrakt dla innych systemów](#kontrakt-dla-innych-systemów)
+- [Problemy i pytania](#problemy-i-pytania)
+- [Rozwój i licencja](#rozwój-i-licencja)
+
+## Co robi Heat Zones
+
+- **Grzeje pokoje, nie kaloryfery.** Głowice z wejściem czujnika pokoju (SONOFF TRVZB / TRV-ZBT i inne) dostają
+  temperaturę z pokoju, a głowice bez takiego wejścia dostają cel poprawiony o różnicę między ich termometrem
   a pokojem.
-- **Granice pokoi**: „salon nigdy cieplej niż 23,5 °C”, choć strefa mierzy w przedpokoju.
-- **Pauza przy otwartym oknie**, **praca bez czujników** (głowice wracają na własne termometry), **powtarzanie
-  zgubionych komend**, **przejmowanie zmian z pokrętła**.
-- **Samonaprawa czujnika pokoju**: głowica, która po cichu wróciła na własny termometr (zdarza się po aktualizacji
-  oprogramowania), zostaje przełączona z powrotem; zgłoszenie problemu dopiero, gdy to nie pomoże.
-- **Strażnik zaworu**: zauważa zawór otwarty, przy którym pokój się nie nagrzewa.
-- **Nauka**: różnice między pokojami, tempo nagrzewania i **model cieplny** (stygnięcie, moc grzania, temperatura
-  na dworze, wiatr) — także z historii Home Assistanta.
-- **Harmonogram tygodniowy** dla każdej strefy z **nagrzewaniem na zapas** (optimum start) z modelu, **ręczną
-  zmianą do następnego bloku**, **trzymaniem do godziny** albo **na stałe** i **nadpisaniami na czas** (urlop,
-  goście, praca z domu).
-- **Karta Lovelace** z edytorem harmonogramu, dołączona i rejestrowana automatycznie.
-- **Kontrakt dla innych systemów** (np. [HomeAI](https://github.com/lukasz-wieckowski/homeai)): plan na 36 godzin,
-  problemy jako sygnały i usługi do odczytu i zmiany harmonogramu.
-
-Bez chmury i bez AI — Heat Zones to termostat. Systemy takie jak HomeAI sterują nim jak każdym termostatem
-i dodają nadpisania przez kontrakt opisany niżej.
+- **Mierzy tam, gdzie mieszkasz.** Jeden pokój, średnio albo najzimniejszy pokój strefy, do tego granice dla
+  pokoi: „kuchnia nigdy cieplej niż 23 °C”, choć strefa mierzy średnio.
+- **Idzie za tygodniem.** Harmonogram tygodniowy dla każdej strefy, **nagrzewanie na zapas** (optimum start)
+  z wyuczonego modelu cieplnego, **ręczne zmiany do najbliższej zmiany**, **trzymanie** do godziny albo na stałe
+  i **nadpisania na czas** (goście, praca z domu, wyjazd).
+- **Radzi sobie w prawdziwym domu.** Czeka, gdy okno jest otwarte, grzeje dalej **bez czujników** (na własnych
+  termometrach głowic), **powtarza zgubione komendy** i **przejmuje obrót pokrętła**.
+- **Naprawia się sama.** Głowica, która po cichu wróciła na własny termometr (zdarza się po aktualizacji
+  oprogramowania), zostaje przełączona z powrotem; zgłoszenie problemu przychodzi dopiero, gdy to nie pomoże.
+  **Strażnik zaworu** zauważa zawór otwarty, przy którym pokój się nie nagrzewa.
+- **Uczy się** różnic między pokojami, tempa nagrzewania i **modelu cieplnego** (stygnięcie, moc grzania,
+  temperatura na dworze, wiatr), także z historii Home Assistanta.
+- **Ma kartę na co dzień.** Strefa teraz, plan na dziś i tryby na pierwszy rzut oka; tydzień, nadpisania
+  i ustawienia jedno dotknięcie dalej. Karta jest w zestawie, rejestruje się sama i idzie za Twoim motywem.
+- **Rozmawia z innymi systemami.** Plan na 36 godzin, problemy jako sygnały i usługi do odczytu i zmiany
+  harmonogramu ([kontrakt](#kontrakt-dla-innych-systemów)).
 
 ## Wymagania
 
-- Home Assistant **2026.11** lub nowszy.
-- Głowice jako encje `climate` przypisane do obszarów. Czujniki temperatury w pokojach są mocno zalecane.
+- Home Assistant **2026.11** albo nowszy.
+- Głowice jako encje `climate`, przypisane do obszarów. Czujniki temperatury w pokojach są bardzo zalecane.
 - Opcjonalnie: czujnik temperatury na dworze albo encja pogody z prognozą godzinową (lepsze nagrzewanie na zapas).
 
 ## Instalacja
@@ -40,128 +68,261 @@ i dodają nadpisania przez kontrakt opisany niżej.
 
 1. Otwórz HACS → ⋮ → *Własne repozytoria*, dodaj `https://github.com/lukasz-wieckowski/heat-zones`, kategoria
    **Integracja**.
-2. Znajdź **Heat Zones** w HACS, zainstaluj i uruchom Home Assistanta ponownie.
+2. Znajdź **Heat Zones** w HACS, zainstaluj i uruchom ponownie Home Assistanta.
 
-**Ręcznie**: skopiuj `custom_components/heat_zones` do folderu `custom_components` konfiguracji i uruchom Home
-Assistanta ponownie.
+**Ręcznie**
 
-## Konfiguracja
+1. Skopiuj `custom_components/heat_zones` do `config/custom_components/` swojego Home Assistanta.
+2. Uruchom ponownie Home Assistanta.
 
-*Ustawienia → Urządzenia i usługi → Dodaj integrację → Heat Zones.* Kreator pyta o opcjonalny czujnik na dworze
-i pogodę i może utworzyć strefę dla każdego obszaru z termostatem.
+## Pierwsza konfiguracja
 
-Każda strefa to **podwpis** integracji (*Dodaj strefę*, a przy strefie ⋮ → *Zmień konfigurację*):
+**Ustawienia → Urządzenia oraz usługi → Dodaj integrację → Heat Zones.** Kreator pyta o opcjonalny czujnik
+temperatury na dworze i encję pogody (oba poprawiają nagrzewanie na zapas) i proponuje utworzenie strefy dla
+każdego obszaru z termostatem. Każda strefa ma potem swoje miejsce na stronie integracji, z urządzeniem i encjami:
 
-1. **Strefa** — nazwa, pokoje (obszary), termostaty (puste: wszystkie w tych pokojach), okna i drzwi (puste:
-   wszystkie czujniki otwarcia w pokojach), pauza przy oknie i jej opóźnienie.
-2. **Krok dla każdego pokoju** — czujnik temperatury (puste: czujnik ustawiony w obszarze albo znaleziony w pokoju)
-   i opcjonalna granica.
-3. **Tryby** — temperatury `comfort`, `eco`, `sleep` i `away` oraz własne tryby, jeden w linii (`Prysznic: 24`).
-4. **Sterowanie** — jak strefa steruje głowicami (automatycznie, wejście czujnika, poprawiony cel, własny
-   termometr), największa poprawka celu, nagrzewanie na zapas i jak wcześnie może się zacząć, encje towarzyszące,
-   gdy nie znalazły się same.
+![Integracja Heat Zones z trzema strefami](docs/images/pl/09-integration.jpg)
 
-Opcje integracji: czujnik na dworze, pogoda i **początek sezonu grzewczego** — od tego dnia grzejesz; strefy uczą
-się stygnięcia z nocy przed nim, więc nagrzewanie na zapas jest dokładne od pierwszego dnia.
+**Dodaj strefę** dodaje nową, koło zębate przy strefie (**Zmień strefę**) ją zmienia, a jej **⋮ → Usuń** usuwa.
+Formularz strefy ma cztery kroki:
 
-## Jak działa strefa
+![Dodawanie strefy](docs/images/pl/10-add-zone.jpg)
 
-**Gdzie ma być ciepło.** `select.<strefa>_measure_at`: pokój, `average` (średnio) albo `coldest` (najzimniej).
-Gdy czujnik wybranego pokoju milczy, strefa bierze pozostałe pokoje; bez żadnego odczytu z pokoi głowice wracają
-na własne termometry, a strefa zgłasza problem.
-
-**Sterowanie głowicą** (osobno dla każdej, domyślnie *automatycznie*):
-
-| Tryb | Kiedy | Co strefa wysyła |
-|---|---|---|
-| Wejście czujnika pokoju | głowica ma wejście temperatury zewnętrznej (wykrywane po `unique_id`, np. `external_temperature_input` i `temperature_sensor_select` z Zigbee2MQTT) | temperaturę z pokoju (podniesioną przez pokoje z granicą) i cel strefy |
-| Poprawiony cel | brak wejścia, są czujniki w pokojach | cel + (termometr głowicy − pokój), wygładzone i ograniczone (domyślnie ±3 °C) |
-| Własny termometr | brak czujników w pokojach albo wybrane | cel strefy |
-
-**Granice pokoi.** Dla każdego pokoju z granicą strefa podaje `max(punkt, T_pokoju − (granica − cel))`, więc
-głowica przykręca, gdy pokój z granicą do niej dochodzi. Termostat strefy pokazuje, który pokój ogranicza
-(`limited_by`), i — z nauki — najwyższą temperaturę, jaką osiągnie miejsce pomiaru (`max_reachable`).
-
-**Pauza przy oknie.** Okno albo drzwi otwarte dłużej niż opóźnienie (domyślnie 2 min) wyłączają głowice do
-zamknięcia (`binary_sensor.<strefa>_window_pause`). Długo otwarte okno przy grzaniu to też sygnał.
-
-**Limit zaworu.** Gdy głowice mają ustawienie otwarcia zaworu, `number.<strefa>_valve_limit` ustawia je wszystkim.
-
-## Harmonogram
-
-Harmonogram jest tygodniowy, osobny dla każdej strefy: bloki `{dni, godzina, tryb | temperatura}`. Blok trwa do
-następnego — także przez kolejne dni i tygodnie. `switch.<strefa>_schedule` włącza go i wyłącza (wyłączony: tylko
-ręczne zmiany).
-
-Co strefa trzyma w danej chwili, od dołu:
-
-1. **Harmonogram** (gdy włączony i niepusty), inaczej cel ustawiony ręcznie.
-2. **Nadpisania** — od–do, tryb albo temperatura, z powodem i źródłem. Wygrywają z harmonogramem i znikają same.
-3. **Ręczne zmiany** — z karty, pokrętła, pilota, głosem albo z innego systemu. Przy włączonym harmonogramie
-   obowiązują **do następnej zmiany** (następny blok albo początek lub koniec nadpisania). **Trzymaj do** i
-   **Trzymaj na stałe** (usługa `heat_zones.hold`) przedłużają je, a `heat_zones.resume` wraca do harmonogramu.
-
-Między nadpisaniami a ręcznymi zmianami **wygrywa nowsza instrukcja**: ręczna zmiana wygrywa z trwającym
-nadpisaniem; nadpisanie, które zaczyna się później, wygrywa z wcześniejszym trzymaniem, a po jego końcu trzymanie
-wraca.
-
-**Nagrzewanie na zapas (optimum start).** Przed cieplejszym blokiem strefa zaczyna grzać na tyle wcześnie, żeby
-zdążyć na czas — z modelu cieplnego, zmierzonej temperatury i prognozy temperatury na dworze, najwyżej *Zaczynaj
-nagrzewać najwyżej* godzin wcześniej (domyślnie 3). Zanim model się nauczy, liczą się wartości domyślne; dokładny
-jest po kilku dniach grzania (albo od razu z *Początkiem sezonu grzewczego*).
-
-`sensor.<strefa>_next_change` mówi, kiedy cel zmieni się następnym razem, na jaki i dlaczego (`schedule`,
-`override`, `hold`, `preheat`).
-
-## Encje strefy
-
-| Encja | Co |
+| Krok | O co pyta |
 |---|---|
-| `climate.<strefa>` | cel w miejscu pomiaru, `heat`/`off`, tryby `comfort`, `eco`, `sleep`, `away` i własne; atrybuty niżej |
-| `switch.<strefa>_schedule` | harmonogram wł./wył. |
-| `sensor.<strefa>_next_change` | następna zmiana (czas; `temperature`, `preset_mode`, `source`, `reason`) |
-| `select.<strefa>_measure_at` | gdzie ma być ciepło (strefy z więcej niż jednym czujnikiem) |
-| `binary_sensor.<strefa>_problem` | coś wymaga uwagi (`device_class: problem`) |
-| `binary_sensor.<strefa>_window_pause` | grzanie wstrzymane przez otwarte okno |
-| `number.<strefa>_valve_limit` | limit otwarcia zaworu (głowice z takim ustawieniem) |
-| `sensor.<strefa>_heating_rate`, `_cooling_rate`, `_heating_power`, `_model_confidence`, `_room_samples` | nauka i model cieplny (diagnostyczne) |
+| Strefa | nazwa, pokoje (obszary), termostaty (puste: wszystkie termostaty w tych pokojach), okna i drzwi (puste: wszystkie czujniki okien i drzwi w tych pokojach), pauza przy otwartym oknie i jej opóźnienie |
+| Krok dla każdego pokoju | czujnik temperatury pokoju (puste: czujnik ustawiony w obszarze albo znaleziony w pokoju) i opcjonalna granica |
+| Tryby | temperatury trybów Komfort, Eko, Sen i Poza domem oraz własne tryby, jeden w linii (`Prysznic: 24`) |
+| Sterowanie | jak strefa steruje głowicami (automatycznie, wejście czujnika, poprawiony cel, własny termometr), największa poprawka celu, nagrzewanie na zapas i jak wcześnie może się zacząć oraz encje towarzyszące, gdy nie znalazły się same |
 
-Tryb we wszystkich strefach naraz: `climate.set_preset_mode` z wszystkimi termostatami stref jako celem.
+**Konfiguruj** przy integracji ma czujnik na dworze, pogodę i **Początek sezonu grzewczego**: dzień, od którego
+grzejesz. Strefy uczą się wtedy stygnięcia pokoi z nocy przed nim, więc nagrzewanie na zapas jest dokładne od
+pierwszego dnia.
 
-Atrybuty termostatu: `measure_at`, `rooms` (temperatura, czujnik, granica, wyuczona różnica i przewidywana
-temperatura każdego pokoju), `thermostats` (encja i tryb sterowania), `room_temperature_sent`, `limited_by`,
-`max_reachable`, `reach_at` (kiedy cel), `window_pause`, `open_windows`, `problem`, `source`, `reason`,
-`override_id`, `hold`, `schedule_enabled`, `preset_temperatures`, `next_change` i atrybuty kontraktu.
-
-## Karta
-
-Integracja serwuje i rejestruje kartę; dodaj ją w edytorze pulpitu (*Heat Zones*) albo w YAML:
+Na koniec dodaj kartę do pulpitu: *Edytuj pulpit → Dodaj kartę → Heat Zones*, albo w YAML:
 
 ```yaml
 type: custom:heat-zones-card
-entity: climate.living_area
-# opcjonalnie
-show_controls: true
-show_schedule: true
-show_overrides: true
+entity: climate.czesc_dzienna
 ```
 
-Na pierwszy rzut oka karta pokazuje tylko to, co potrzebne na co dzień: strefę teraz (temperatura, cel z − / +,
-dlaczego, pauza przy oknie i problemy), dzisiejszy dzień tak, jak strefa go przeprowadzi (pasek z harmonogramem
-i nadpisaniami na dziś, z przygaszoną przeszłością i znacznikiem „teraz”, pod nim najbliższa zmiana) i tryby. Gdy
-ręczna zmiana jest trzymana, *Wróć do harmonogramu* stoi tuż obok powodu. Wszystko, czego używa się od czasu do
-czasu, otwiera się w arkuszu: na telefonie od dołu, na szerszych ekranach na środku.
+## Instrukcja
 
-- **Harmonogram** (odnośnik nad paskiem albo sam pasek): harmonogram wł./wył., tydzień (dotknij dnia, zmień jego
-  bloki, skopiuj na inne dni) i nadpisania.
-- **Ustawienia** (⋯): ogrzewanie wł./wył., gdzie strefa mierzy, przedłużenie ręcznej zmiany na stałe albo do
-  godziny.
+### Karta
 
-`show_controls` chowa cel i tryby, `show_schedule` pasek i harmonogram, `show_overrides` nadpisania w arkuszu
-harmonogramu. Edytor tygodnia i lista nadpisań to też osobne elementy, `<heat-zones-schedule-editor>`
-i `<heat-zones-overrides>` (właściwości `hass` i `entity`, atrybut `inset`, gdy siedzą we własnym arkuszu), do
-użycia w innych kartach. Całość idzie za motywem Home Assistanta i daje się przestylować (zob.
-[Wygląd i motyw](#wygląd-i-motyw-theming)).
+Karta odpowiada na codzienne pytanie, jak jest ciepło i co się dziś stanie, a wszystko inne trzyma jedno
+dotknięcie dalej (zrzut na górze strony).
+
+| Część | Co pokazuje i robi |
+|---|---|
+| Nazwa i **⋯** | strefa; **⋯** otwiera jej [ustawienia](#ustawienia) |
+| Temperatura | w punkcie pomiaru strefy, w kolorze grzania, gdy strefa grzeje |
+| **−** cel **+** | zmienia cel o 0,5 °C ([ręczna zmiana](#ręczne-zmiany-i-trzymanie)) |
+| Powód | dlaczego strefa trzyma ten cel: harmonogram, nadpisanie (z jego powodem, np. *Praca z domu*), ręczna zmiana, nagrzewanie na zapas albo pauza przy oknie. Gdy ręczna zmiana jest trzymana, obok stoi **Wróć do harmonogramu** |
+| Dziś | dzisiejszy harmonogram i nadpisania jako pasek od północy do północy, chłodniejsze cele na niebiesko, cieplejsze na pomarańczowo; to, co minęło, jest przygaszone, a kreska pokazuje teraz. Pod spodem najbliższa zmiana. **Harmonogram** (albo sam pasek) otwiera [tydzień](#harmonogram) |
+| Tryby | Komfort, Eko, Sen, Poza domem i własne, aktywny zabarwiony. Gdy strefa jest wyłączona, zamiast nich jest jeden przycisk **Włącz ogrzewanie** |
+
+Administratorzy widzą też pod powodem problemy strefy (milczący czujnik, zablokowany zawór…).
+
+Opcje karty, wszystkie opcjonalne: `title` (zamiast nazwy strefy) oraz `show_controls` (cel i tryby),
+`show_schedule` (pasek i harmonogram) i `show_overrides` (nadpisania w arkuszu harmonogramu), domyślnie włączone.
+Edytor karty ma je jako przełączniki.
+
+### Harmonogram
+
+![Arkusz harmonogramu](docs/images/pl/02-schedule.jpg)
+
+**Harmonogram** otwiera tydzień w arkuszu. Przełącznik u góry włącza i wyłącza harmonogram (wyłączony: strefa
+trzyma ręczne ustawienia). Każdy dzień to pasek od 0 do 24; blok trwa do następnego, także przez kolejne dni
+i tygodnie. Pod tygodniem są nadpisania.
+
+Dotknij dnia, żeby go zmienić:
+
+![Edycja dnia](docs/images/pl/03-edit-day.jpg)
+
+Każdy blok to godzina i tryb albo temperatura; obok trybu widać jego temperaturę. **Dodaj blok** dodaje blok dwie
+godziny po ostatnim, **✕** usuwa blok, a **Kopiuj do** kopiuje dzień na wybrane dni przy zapisie. **Zapisz**
+zapisuje tydzień, **Anuluj** porzuca zmiany.
+
+### Nadpisania
+
+![Dodawanie nadpisania](docs/images/pl/04-override.jpg)
+
+Nadpisanie to cel na jakiś czas: od, do, tryb albo temperatura i powód. Wygrywa z harmonogramem i znika samo, gdy
+się skończy. **Dodaj nadpisanie** otwiera formularz (od teraz, na trzy godziny), a **✕** usuwa nadpisanie. Przy
+każdym widać, skąd przyszło: `card` z tego formularza, `homeai` z HomeAI albo `source` tego, kto wywołał
+`heat_zones.add_override`. Wyżej HomeAI trzyma ciepło w części dziennej, bo ktoś pracuje z domu, jutro wieczorem
+przychodzą goście, a na święta cały dom jest *Poza domem*.
+
+### Ręczne zmiany i trzymanie
+
+Zmiana z karty (**−** / **+**, tryb), z pokrętła głowicy, pilota, głosem albo z innego systemu to **ręczna
+zmiana**. Przy włączonym harmonogramie trwa **do najbliższej zmiany**: następnego bloku albo początku lub końca
+nadpisania. Żeby trzymać ją dłużej, otwórz **⋯** i wybierz **Trzymaj na stałe** (harmonogram czeka, aż do niego
+wrócisz) albo **Trzymaj do** godziny. **Wróć do harmonogramu** wraca do harmonogramu od razu.
+
+Między nadpisaniami a ręcznymi zmianami **wygrywa najnowsze polecenie**: ręczna zmiana wygrywa z trwającym
+nadpisaniem; nadpisanie, które zaczyna się później, wygrywa z wcześniejszym trzymaniem, a gdy się skończy, trzymanie
+wraca.
+
+### Ustawienia
+
+![Arkusz ustawień](docs/images/pl/05-settings.jpg)
+
+**⋯** otwiera ustawienia strefy:
+
+- **Ogrzewanie**: włączone albo wyłączone. Wyłączone wyłącza głowice, a harmonogram czeka.
+- **Gdzie mierzyć**: pokój, średnio z pokoi albo najzimniejszy pokój (strefy z więcej niż jednym czujnikiem).
+- **Ręczne zmiany**: trzymanie obecnej ręcznej zmiany na stałe albo do godziny, albo powrót do harmonogramu.
+
+Cała reszta strefy jest w jej konfiguracji: koło zębate przy strefie (**Zmień strefę**) na stronie integracji.
+
+### Na telefonie
+
+<p>
+  <img src="docs/images/pl/06-phone.jpg" alt="Karty na telefonie" width="49%">
+  <img src="docs/images/pl/07-phone-schedule.jpg" alt="Arkusz harmonogramu na telefonie" width="49%">
+</p>
+
+Na telefonie karty zajmują całą szerokość, a arkusze wysuwają się od dołu. Arkusz zamyka **Gotowe**, klawisz
+Escape albo dotknięcie poza nim.
+
+## Jak działa strefa
+
+**Punkt pomiaru.** `select.<strefa>_measure_at`: pokój, `average` (średnio) albo `coldest` (najzimniejszy). Gdy
+czujnik wybranego pokoju milczy, strefa bierze pozostałe pokoje; bez żadnego odczytu z pokoi głowice wracają na
+własne termometry, a strefa zgłasza problem.
+
+**Sterowanie głowicami** (dla każdej głowicy, domyślnie *automatycznie*):
+
+| Tryb | Kiedy | Co strefa wysyła |
+|---|---|---|
+| Wejście czujnika pokoju | głowica ma wejście temperatury zewnętrznej (szukane po `unique_id`, np. `external_temperature_input` i `temperature_sensor_select` z Zigbee2MQTT) | temperaturę pokoju (podniesioną przez pokoje z granicą) i cel strefy |
+| Poprawiony cel | brak takiego wejścia, ale są czujniki w pokojach | cel + (termometr głowicy − pokój), wygładzony i ograniczony (domyślnie ±3 °C) |
+| Własny termometr | brak czujników w pokojach albo wybrany | cel strefy |
+
+**Granice pokoi.** Dla każdego pokoju z granicą strefa podaje `max(punkt, T_pokoju − (granica − cel))`, więc
+głowica zamyka się, gdy pokój z granicą do niej dojdzie. Encja climate pokazuje, który pokój ogranicza strefę
+(`limited_by`), a z nauki: najwyższą temperaturę, jaką punkt pomiaru może osiągnąć (`max_reachable`).
+
+**Pauza przy oknie.** Okno albo drzwi otwarte dłużej niż opóźnienie (domyślnie 2 min) wyłączają głowice do
+zamknięcia (`binary_sensor.<strefa>_window_pause`). Długo otwarte okno przy grzaniu staje się też sygnałem.
+
+**Limit zaworu.** Gdy głowice mają ustawienie otwarcia zaworu, `number.<strefa>_valve_limit` ustawia je dla
+wszystkich.
+
+**Co strefa trzyma.** Od dołu:
+
+1. **Harmonogram** (gdy włączony i niepusty), inaczej ręczny cel.
+2. **Nadpisania**: od–do, tryb albo temperatura, z powodem i źródłem. Wygrywają z harmonogramem i znikają same.
+3. **Ręczne zmiany**: do najbliższej zmiany przy włączonym harmonogramie; trzymane do godziny albo na stałe przez
+   `heat_zones.hold`, z powrotem do harmonogramu przez `heat_zones.resume`.
+
+**Nagrzewanie na zapas (optimum start).** Przed cieplejszym krokiem strefa zaczyna grzać na tyle wcześnie, żeby
+zdążyć, z modelu cieplnego, zmierzonej temperatury i prognozy temperatury na dworze, najwyżej *Zaczynaj nagrzewać
+najwyżej* godzin wcześniej (domyślnie 3). Zanim model się nauczy, liczą się wartości domyślne; po kilku dniach
+grzania (albo od razu z *Początkiem sezonu grzewczego*) jest dokładny.
+
+**Nauka.** Strefa uczy się różnicy każdego pokoju względem punktu pomiaru, tempa nagrzewania i modelu cieplnego
+(stygnięcie, moc grzania, wpływ temperatury na dworze i wiatru). Czujniki diagnostyczne pokazują, ile już wie;
+`heat_zones.reset_learning` zaczyna od nowa.
+
+`sensor.<strefa>_next_change` pokazuje, kiedy cel zmieni się następnym razem, na jaki i dlaczego (`schedule`,
+`override`, `hold`, `preheat`).
+
+## Encje
+
+Każda strefa jest urządzeniem z takimi encjami:
+
+![Urządzenie strefy](docs/images/pl/11-device.jpg)
+
+| Encja | Co |
+|---|---|
+| `climate.<strefa>` | cel w punkcie pomiaru, `heat`/`off`, tryby `comfort`, `eco`, `sleep`, `away` i własne; atrybuty niżej |
+| `switch.<strefa>_schedule` | harmonogram wł./wył. |
+| `sensor.<strefa>_next_change` | najbliższa zmiana (znacznik czasu; `temperature`, `preset_mode`, `source`, `reason`) |
+| `select.<strefa>_measure_at` | gdzie strefa mierzy (strefy z więcej niż jednym czujnikiem) |
+| `binary_sensor.<strefa>_problem` | coś wymaga uwagi (`device_class: problem`) |
+| `binary_sensor.<strefa>_window_pause` | grzanie wstrzymane przez otwarte okno |
+| `number.<strefa>_valve_limit` | limit otwarcia zaworu (głowice z takim ustawieniem) |
+| `sensor.<strefa>_heating_rate`, `_cooling_rate`, `_heating_power`, `_model_confidence`, `_room_samples` | nauka i model cieplny (diagnostyka) |
+
+Atrybuty climate: `measure_at`, `rooms` (temperatura, czujnik, granica, wyuczona różnica i przewidywana
+temperatura każdego pokoju), `thermostats` (encja i tryb sterowania), `room_temperature_sent`, `limited_by`,
+`max_reachable`, `reach_at` (kiedy cel ma być osiągnięty), `window_pause`, `open_windows`, `problem`, `source`,
+`reason`, `override_id`, `hold`, `schedule_enabled`, `preset_temperatures`, `next_change` i atrybuty kontraktu.
+
+## Usługi i automatyzacje
+
+| Usługa | Co robi |
+|---|---|
+| `heat_zones.hold` | trzyma temperaturę albo tryb do godziny (`until`) albo na stałe (`permanent`) |
+| `heat_zones.resume` | wraca do harmonogramu |
+| `heat_zones.add_override` / `remove_override` | cel na jakiś czas, z powodem i źródłem |
+| `heat_zones.get_schedule` / `set_schedule` | odczyt albo zamiana tygodnia (i odczyt nadpisań) |
+| `heat_zones.estimate` | ile minut grzania trzeba do danej temperatury |
+| `heat_zones.reset_learning` | kasuje to, czego strefa się nauczyła |
+
+Działają też zwykłe akcje `climate`: żeby ustawić tryb we wszystkich strefach naraz, wywołaj
+`climate.set_preset_mode` ze wszystkimi termostatami stref jako celem. Pola i odpowiedzi są w
+[kontrakcie](#kontrakt-dla-innych-systemów).
+
+**Poza domem, gdy nikogo nie ma**, i powrót, gdy ktoś przyjdzie:
+
+```yaml
+- alias: Ogrzewanie poza domem, gdy nikogo nie ma
+  triggers:
+    - trigger: numeric_state
+      entity_id: zone.home
+      below: 1
+      for: { minutes: 30 }
+  actions:
+    - action: heat_zones.hold
+      target:
+        entity_id: [climate.czesc_dzienna, climate.sypialnia, climate.lazienka]
+      data:
+        preset_mode: away
+        permanent: true
+- alias: Ogrzewanie wraca, gdy ktoś przyjdzie
+  triggers:
+    - trigger: numeric_state
+      entity_id: zone.home
+      above: 0
+  actions:
+    - action: heat_zones.resume
+      target:
+        entity_id: [climate.czesc_dzienna, climate.sypialnia, climate.lazienka]
+```
+
+**Goście w sobotę wieczorem**, w skrypcie albo automatyzacji:
+
+```yaml
+action: heat_zones.add_override
+target:
+  entity_id: climate.czesc_dzienna
+data:
+  start: "2026-11-21T17:00:00"
+  end: "2026-11-21T23:30:00"
+  temperature: 22
+  reason: Goście
+  source: script
+```
+
+**Daj znać, gdy strefa ma problem:**
+
+```yaml
+- alias: Problem z ogrzewaniem
+  triggers:
+    - trigger: state
+      entity_id: binary_sensor.czesc_dzienna_problem
+      to: "on"
+      for: { minutes: 10 }
+  actions:
+    - action: notify.notify
+      data:
+        message: >-
+          {{ state_attr('climate.czesc_dzienna', 'homeai_signals') | map(attribute='title') | join('; ') }}
+```
 
 ## Wygląd i motyw (Theming)
 
@@ -180,6 +341,8 @@ kontrolka + odstęp), a edycja dnia i dodawanie nadpisania otwierają się w uni
 kontrolki daje krótkie zmniejszenie. Przy systemowym *ograniczeniu przezroczystości* albo *większym kontraście*
 szkło staje się pełne (większy kontrast rysuje też mocniejsze krawędzie), a przy *ograniczeniu ruchu* nie ma
 animacji wciśnięcia.
+
+![Arkusz harmonogramu w ciemnym motywie](docs/images/pl/08-dark.jpg)
 
 ```yaml
 # themes.yaml
@@ -303,40 +466,123 @@ heat-zones-schedule-editor::part(day-bar) { border-radius: 0; }
 ## Kontrakt dla innych systemów
 
 Heat Zones publikuje, co zrobi, i przyjmuje zmiany od systemów takich jak HomeAI. Ten sam kontrakt może spełnić
-każda integracja termostatu. Szczegóły (pola, odpowiedzi, przykład) są w [README po angielsku](README.md#contract-for-other-systems):
+każda integracja termostatu.
 
-- atrybuty `homeai_schedule` (`{"version": 1, "domain": "heat_zones", "areas": [...], "features": ["open_end"]}` —
-  `areas` to obszary, które strefa grzeje, `features` to opcjonalne części kontraktu, które termostat rozumie),
-  `homeai_plan` (`{start, title, end?}`,
-  36 h, do 50) i `homeai_signals` (`{id, title, severity 0–4, category, description?, need?, group?}`);
-- usługi `heat_zones.add_override` (odpowiedź `{override_id}`), `remove_override`, `get_schedule` (odpowiedź
-  `{entity_id: {enabled, weekly, overrides}}`), `set_schedule`, `estimate` (odpowiedź
-  `{entity_id: {minutes | null, confidence}}`) i `reset_learning`.
+**Atrybuty `climate.<strefa>`:**
 
-Nadpisanie z `open_end: true` ma koniec tylko jako horyzont: nadawca przedłuża je, dopóki trwa powód (nikogo
-w domu, tryb urlopowy), i usuwa, gdy powód minie. Strefa nie nagrzewa na zapas pod taki koniec (pod prawdziwy, np.
-powrót z wyjazdu — tak), a przedłużenie zachowuje wiek i początek nadpisania.
+- `homeai_schedule` = `{"version": 1, "domain": "heat_zones", "areas": [...], "features": ["open_end"]}`: ten
+  termostat obsługuje kontrakt; `areas` (opcjonalne w innych implementacjach) to identyfikatory obszarów, które
+  strefa grzeje (urządzenie strefy nie ma obszaru, więc systemy powinny czytać pokoje stąd); `features` to
+  opcjonalne części wersji 1, które termostat rozumie, a nadawcy używają `open_end` tylko z termostatami, które je
+  wymieniają.
+- `homeai_plan` = lista `{start, title, end?}` (czasy ISO): harmonogram, nadpisania, trzymanie i nagrzewanie na
+  zapas na najbliższe 36 godzin, najwyżej 50 pozycji. Pusta, gdy strefa jest wyłączona.
+- `homeai_signals` = lista `{id, title, severity 0–4, category, description?, need?, group?}`: problemy strefy
+  (milczący czujnik, zablokowany zawór, otwarte okno przy grzaniu, głowica bez czujnika pokoju, niedostępne
+  głowice), jak w
+  [docs/integrations.md](https://github.com/lukasz-wieckowski/homeai/blob/main/docs/integrations.md) HomeAI.
 
-Nadpisanie wysłane ponownie bez zmian (ten sam początek, koniec i wartość) zachowuje swój wiek, więc nie cofa
-ręcznej zmiany zrobionej w międzyczasie. Stany zapisane przez usługę Stref niosą kontekst wywołującego, a własne
-zmiany integracji (harmonogram, nagrzewanie, koniec nadpisania) — świeży kontekst bez użytkownika.
+**Usługi**: celem są encje climate stref (działa cel encją, urządzeniem, obszarem albo etykietą):
 
-Poza kontraktem: `heat_zones.hold` (`temperature` albo `preset_mode`, `until` albo `permanent`) i
-`heat_zones.resume`.
+| Usługa | Pola | Odpowiedź |
+|---|---|---|
+| `heat_zones.add_override` | `end` (wymagane), `start` (domyślnie teraz), dokładnie jedno z `preset_mode` / `temperature`, `reason` (≤ 200 znaków), `source`, `override_id` (ten sam identyfikator zastępuje nadpisanie), `open_end` (opcjonalne, domyślnie false) | `{override_id}` |
+| `heat_zones.remove_override` | `override_id` albo `source` (usuwa wszystkie nadpisania z tego źródła); bez celu: wszystkie strefy | `{removed}` |
+| `heat_zones.get_schedule` | bez celu: wszystkie strefy | `{entity_id: {enabled, weekly: [{days: ["mon", …], time: "HH:MM", preset_mode \| temperature}], overrides: [{override_id, start, end, preset_mode \| temperature, reason, source, open_end?}]}}` |
+| `heat_zones.set_schedule` | `weekly` w tym samym formacie | — |
+| `heat_zones.estimate` | `temperature` | `{entity_id: {minutes \| null, confidence 0–1}}` |
+| `heat_zones.reset_learning` | — | — |
 
-## Uwagi
+Szczegóły:
 
-- Strefy budowane z obszarów reagują na zmiany rejestrów: nowa głowica albo czujnik w pokoju strefy przebudowuje
-  strefy po chwili.
-- Nauka startuje od zera po instalacji; `heat_zones.reset_learning` ją kasuje.
-- Diagnostyka (*⋮ → Pobierz diagnostykę*) zawiera konfigurację, stan i naukę stref.
+- `add_override` z `override_id`, którego jeszcze nie ma, tworzy nadpisanie pod tym identyfikatorem (upsert);
+  `override_id` ma 1–80 znaków, `source` najwyżej 60. Nadpisanie wysłane ponownie **bez zmian** (ten sam początek,
+  koniec i wartość) zachowuje swój wiek, więc ponowne wysłanie po restarcie nie cofa ręcznej zmiany zrobionej
+  w międzyczasie; zmienione jest nowym poleceniem.
+- Czasy w ISO 8601 (bez przesunięcia: czas lokalny). Nadpisanie może zacząć się w przeszłości; koniec musi być
+  w przyszłości i po początku, a całość może trwać najwyżej 90 dni. `preset_mode` musi istnieć w każdej strefie
+  z celu.
+- **Nadpisania bez końca** (`open_end: true`): koniec jest tylko horyzontem. Nadawca przedłuża nadpisanie, dopóki
+  trwa powód (nikogo w domu, tryb urlopowy), i usuwa je, gdy powód minie. Aktywne nadpisanie zawsze wygrywa
+  z harmonogramem; strefa nigdy nie nagrzewa na zapas pod horyzont (pod prawdziwy koniec, np. powrót z wyjazdu,
+  tak). Przedłużenie (ten sam identyfikator i wartość, późniejszy koniec, ten sam początek albo początek „teraz”, gdy
+  już trwa) zachowuje wiek i początek nadpisania, więc nie wygrywa z ręczną zmianą zrobioną w międzyczasie. Jeśli
+  nikt go nie przedłuży, na horyzoncie po prostu wraca harmonogram. `get_schedule` zwraca przy takich nadpisaniach
+  `open_end: true`.
+- `remove_override` z nieznanym identyfikatorem nic nie usuwa (`{removed: 0}`) i nie jest błędem.
+- `set_schedule` zastępuje cały tydzień; dni to `mon` … `sun`, godziny `HH:MM`, temperatury 5–30 °C (zaokrąglane
+  do 0,5). Harmonogram niepoprawny dla którejkolwiek strefy z celu nie zmienia żadnej.
+- `estimate` podaje minuty ciągłego grzania od teraz (0, gdy już jest ciepło, `null` bez temperatury pokoju albo
+  gdy w 12 godzin się nie da).
+- **Kto zmienił**: stany zapisane przez usługę Heat Zones niosą kontekst wywołującego, a zmiany na termostacie
+  strefy kontekst, który daje im Home Assistant; własne zmiany integracji (harmonogram, nagrzewanie na zapas,
+  koniec nadpisania albo trzymania) dostają świeży kontekst bez użytkownika. Atrybut `source` (`schedule`,
+  `override`, `hold`, `manual`, `preheat`) mówi to samo bez kontekstów: `hold` i `manual` to zmiana człowieka, także
+  obrót pokrętła. `source` i `preset_temperatures` (tryb → °C) są częścią kontraktu i się nie zmieniają.
 
-## Rozwój
+Przykład: HomeAI wie o wyjeździe.
 
-Zobacz [CONTRIBUTING.md](CONTRIBUTING.md). Heat Zones wyrosło z prywatnej integracji *Strefy ciepła* (wersja
-1.10), bez jej trybu Auto: planowanie z obecności i nawyków należy do systemów takich jak HomeAI, które korzystają
-z kontraktu.
+```yaml
+action: heat_zones.add_override
+target:
+  entity_id: [climate.czesc_dzienna, climate.sypialnia]
+data:
+  start: "2026-12-20T08:00:00+01:00"
+  end: "2026-12-27T16:00:00+01:00"
+  preset_mode: away
+  reason: Wyjazd na święta
+  source: homeai
+  override_id: homeai-trip-2026-12
+response_variable: result
+```
 
-## Licencja
+Poza kontraktem trzymaniem sterują `heat_zones.hold` (`temperature` albo `preset_mode`, `until` albo `permanent`)
+i `heat_zones.resume`.
+
+## Problemy i pytania
+
+**Kreator nie znajduje termostatów albo pokoi.** Termostaty muszą być encjami `climate` w obszarze: własnym albo
+obszarze swojego urządzenia. Ukryte termostaty i same strefy są pomijane. Przypisz głowice do pokoi (*Ustawienia →
+Obszary*) i dodaj strefę jeszcze raz albo wybierz je w formularzu strefy.
+
+**Dodałem głowicę albo czujnik w pokoju.** Strefy zbudowane z obszarów to zauważą: nowa głowica albo czujnik
+w pokoju strefy przebudowuje strefy po chwili.
+
+**Strefa bierze zły czujnik pokoju.** Czujnik pokoju to czujnik temperatury ustawiony w obszarze w Home Assistancie
+(*Ustawienia → Obszary → obszar → Czujnik temperatury*); bez niego czujnik temperatury w pokoju na urządzeniu,
+które niczym nie steruje (termometr głowicy czy zmywarki nic nie mówi o pokoju, czujnik rośliny też nie). Żeby
+wybrać inny, otwórz **Zmień strefę** i wybierz go w kroku pokoju.
+
+**Pauza przy oknie nie działa.** Czujnik musi mieć klasę urządzenia `window`, `door`, `opening` albo
+`garage_door` i być w jednym z pokoi strefy (albo wybrany w formularzu strefy); czujnik na urządzeniu, które czymś
+steruje, jest pomijany. Pauza zaczyna się po opóźnieniu (domyślnie 2 min) i widać ją jako
+`binary_sensor.<strefa>_window_pause`.
+
+**Zmiana na głowicy zniknęła.** Przy włączonym harmonogramie ręczna zmiana trwa do najbliższej zmiany
+w harmonogramie. Zatrzymaj ją przez **⋯ → Trzymaj na stałe** albo **Trzymaj do**, albo wyłącz harmonogram.
+
+**Nagrzewanie na zapas zaczyna się za wcześnie albo za późno.** Model cieplny potrzebuje kilku dni grzania. Ustaw
+**Początek sezonu grzewczego** w opcjach integracji, żeby uczył się z historii sprzed instalacji; *Zaczynaj nagrzewać
+najwyżej* w kroku Sterowanie strefy ogranicza, jak wcześnie może zacząć. `sensor.<strefa>_model_confidence`
+pokazuje, jak pewny jest model.
+
+**Czujnik problemu jest włączony.** Atrybut `problem` strefy mówi, co jest nie tak: `sensor` (brak odczytu z pokoi),
+`thermostat` (głowica nie korzysta z czujnika pokoju, a samonaprawa nie pomogła) albo `unavailable` (głowice
+niedostępne); `homeai_signals` ma czytelny tytuł. Administratorzy widzą to samo na karcie.
+
+**Karty nie ma na liście kart.** Integracja sama udostępnia i rejestruje kartę; po instalacji albo aktualizacji
+odśwież stronę (w aplikacji Companion: wyczyść jej pamięć podręczną interfejsu). Nie trzeba dodawać zasobu.
+
+**Co Heat Zones wysyła poza dom?** Nic. Czyta tylko encje i historię Twojego Home Assistanta.
+
+**Jak zacząć naukę od nowa?** `heat_zones.reset_learning` na strefie albo na wszystkich.
+
+**Co dołączyć do zgłoszenia błędu?** *⋮ → Pobierz diagnostykę* przy integracji: konfigurację, stan i naukę stref.
+
+## Rozwój i licencja
+
+Zobacz [CONTRIBUTING.md](CONTRIBUTING.md); jest tam też, jak odtworzyć dom demonstracyjny i zrzuty. Heat Zones
+wyrosło z prywatnej integracji *Strefy ciepła* (wersja 1.10), bez jej trybu automatycznego: planowanie z obecności
+i nawyków należy do systemów takich jak HomeAI, które korzystają z kontraktu.
 
 [Apache 2.0](LICENSE)

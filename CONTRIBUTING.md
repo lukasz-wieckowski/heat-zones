@@ -44,6 +44,24 @@ npm run check
 npm run build
 ```
 
+## Screenshots
+
+The screenshots in the READMEs come from a clean Home Assistant with a demo home, built by
+`scripts/demo/demo.mjs` (needs Docker and Node.js 22 or newer):
+
+```bash
+node scripts/demo/demo.mjs up en       # Home Assistant 2026.11 on http://127.0.0.1:18301 (pl: 18302)
+npm install --no-save playwright       # once; it uses Playwright's Chromium or the installed Chrome
+node scripts/demo/demo.mjs shots en    # into docs/images/en/
+node scripts/demo/demo.mjs down en
+```
+
+`up` copies the integration from `custom_components/heat_zones`, onboards a user, builds the home (four rooms with
+virtual thermostats, room sensors and windows, an outdoor sensor), adds three zones with a schedule, overrides and a
+hold, and puts their cards on a *Heating* dashboard, all with names in the chosen language. Everything lives in
+`.demo/<lang>/`, which git ignores; the demo user's password is in `.demo/<lang>/credentials.json`. Take the
+screenshots again in both languages whenever the card, the setup or the integration's pages change.
+
 ## Layout
 
 | File | What |
@@ -56,6 +74,7 @@ npm run build
 | `services.py` | the contract and hold services |
 | `config_flow.py` | the wizard, options and the zone subentry |
 | `frontend/` | the card and the schedule editor |
+| `scripts/demo/` | the demo home and the screenshots for the READMEs |
 
 ## Pull requests
 

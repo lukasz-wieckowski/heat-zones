@@ -6,6 +6,7 @@ from homeassistant.core import Context, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity import Entity
 
+from . import i18n
 from .const import DOMAIN, NAME, VERSION
 from .engine import CALLER, HeatZones, Zone
 
@@ -22,7 +23,7 @@ class ZoneEntity(Entity):
             identifiers={(DOMAIN, zone.id)},
             name=zone.name,
             manufacturer=NAME,
-            model="Heat zone",
+            model=i18n.text(engine.hass, "device.model"),
             sw_version=VERSION,
             entry_type=DeviceEntryType.SERVICE,
         )

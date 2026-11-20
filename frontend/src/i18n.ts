@@ -12,6 +12,7 @@ const TEXTS: Record<string, Record<string, string>> = {
     saved: "Saved",
     error: "Not saved",
     temperature: "Temperature",
+    target: "Target",
     remove: "Remove",
     overrides: "Overrides",
     no_overrides: "No overrides.",
@@ -69,6 +70,7 @@ const TEXTS: Record<string, Record<string, string>> = {
     saved: "Zapisano",
     error: "Nie zapisano",
     temperature: "Temperatura",
+    target: "Cel",
     remove: "Usuń",
     overrides: "Nadpisania",
     no_overrides: "Brak nadpisań.",
@@ -136,10 +138,20 @@ export function degrees(language: string, value: number | null | undefined): str
   return `${value.toLocaleString(language, { maximumFractionDigits: 1 })} °C`;
 }
 
-export function clock(language: string, iso: string): string {
+/** A 12-hour clock or not, as the user's Home Assistant profile says (time format: language, system, 12, 24). */
+function twelveHours(language: string, locale?: { time_format?: string }): boolean {
+  const format = locale?.time_format;
+  if (format === "12" || format === "24") return format === "12";
+  const cycle = new Intl.DateTimeFormat(format === "system" ? undefined : language, { hour: "numeric" }).resolvedOptions()
+    .hourCycle;
+  return cycle === "h11" || cycle === "h12";
+}
+
+export function clock(language: string, iso: string, locale?: { time_format?: string }): string {
   const d = new Date(iso);
   const now = new Date();
-  const time = d.toLocaleTimeString(language, { hour: "2-digit", minute: "2-digit" });
+  const hour12 = twelveHours(language, locale);
+  const time = d.toLocaleTimeString(language, { hour: hour12 ? "numeric" : "2-digit", minute: "2-digit", hour12 });
   if (d.toDateString() === now.toDateString()) return time;
   return `${d.toLocaleDateString(language, { weekday: "short", day: "numeric", month: "numeric" })} ${time}`;
 }

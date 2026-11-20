@@ -18,6 +18,10 @@
   dimmed, a mark for now) and the presets. The week with its overrides and the settings (heating on or off, where
   to measure, keeping a manual change) open in sheets — from the bottom on a phone, in the middle on wider screens.
   *Resume schedule* appears next to the reason while a manual change is held.
+- The card shows times in the user's Home Assistant time format (12 or 24 hours), presets that wrap fill their rows,
+  and the override form labels its target. A zone's device model is in Home Assistant's language.
+- README in English and Polish with screenshots from a clean Home Assistant, a user manual, automation examples and
+  a FAQ; `scripts/demo` builds the demo home and takes the screenshots.
 
 First public version, built from the private *Strefy ciepła* 1.10 (code only, no stored state).
 

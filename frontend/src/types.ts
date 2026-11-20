@@ -15,7 +15,7 @@ export interface HassEntityRegistry {
 export interface HomeAssistant {
   language: string;
   user?: { is_admin: boolean };
-  locale?: { language: string };
+  locale?: { language: string; time_format?: string };
   states: Record<string, HassEntity>;
   entities?: Record<string, HassEntityRegistry>;
   callWS<T>(msg: Record<string, unknown>): Promise<T>;

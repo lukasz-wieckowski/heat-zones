@@ -87,6 +87,10 @@ export class HeatZonesCard extends LitElement {
         color: var(--hz-problem);
         font-size: var(--hz-small-font-size);
       }
+      /* presets that wrap fill their rows, so no row ends in a gap */
+      .presets > button {
+        flex: 1 1 auto;
+      }
       .today-head {
         display: flex;
         align-items: center;
@@ -421,7 +425,7 @@ export class HeatZonesCard extends LitElement {
       ${next && a.schedule_enabled
         ? html`<div class="muted" part="next">
             ${t(language, "from_time", {
-              time: clock(language, next.at),
+              time: clock(language, next.at, this.hass.locale),
               what: `${next.preset_mode ? `${presetName(language, next.preset_mode)} ` : ""}${degrees(language, next.temperature)}`,
             })}
           </div>`
@@ -439,7 +443,7 @@ export class HeatZonesCard extends LitElement {
     const presets = (a.preset_modes ?? []).filter((p: string) => p !== "none") as string[];
     if (!presets.length) return nothing;
     return html`<div class="row">
-      <div class="glass group" part="controls group glass">
+      <div class="glass group presets" part="controls group glass">
         ${presets.map((p) => {
           const active = a.preset_mode === p;
           return html`<button

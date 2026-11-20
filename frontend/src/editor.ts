@@ -413,7 +413,7 @@ export class HeatZonesOverrides extends LitElement {
                 <span class="grow">
                   <strong>${o.preset_mode ? presetName(language, o.preset_mode) : degrees(language, o.temperature)}</strong>
                   ${o.reason ? html`<div>${o.reason}</div>` : nothing}
-                  <div class="muted">${clock(language, o.start)} – ${clock(language, o.end)}${o.source ? ` (${o.source})` : ""}</div>
+                  <div class="muted">${clock(language, o.start, this.hass?.locale)} – ${clock(language, o.end, this.hass?.locale)}${o.source ? ` (${o.source})` : ""}</div>
                 </span>
                 <button
                   class="icon ${this.inset ? "" : "glass"}"
@@ -436,9 +436,9 @@ export class HeatZonesOverrides extends LitElement {
             <input type="datetime-local" part="input" .value=${this.from} @change=${(e: Event) => (this.from = (e.target as HTMLInputElement).value)} />
             <span>${t(language, "to")}</span>
             <input type="datetime-local" part="input" .value=${this.to} @change=${(e: Event) => (this.to = (e.target as HTMLInputElement).value)} />
-            <span></span>
+            <span>${t(language, "target")}</span>
             <div class="row">
-              <select part="input" @change=${(e: Event) => (this.value = (e.target as HTMLSelectElement).value)}>
+              <select part="input" aria-label=${t(language, "target")} @change=${(e: Event) => (this.value = (e.target as HTMLSelectElement).value)}>
                 ${options.map((p: string) => html`<option value=${p} ?selected=${this.value === p}>${presetName(language, p)}</option>`)}
                 <option value="t:21" ?selected=${this.value.startsWith("t:")}>${t(language, "temperature")}</option>
               </select>
